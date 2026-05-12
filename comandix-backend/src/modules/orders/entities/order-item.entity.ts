@@ -23,6 +23,9 @@ export class OrderItem {
   @JoinColumn({ name: 'productId' })
   product: Product;
 
+  @Column()
+  productNameSnapshot: string;
+
   @Column({ type: 'int', default: 1 })
   quantity: number;
 

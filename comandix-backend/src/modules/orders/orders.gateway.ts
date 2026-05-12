@@ -26,6 +26,10 @@ export class OrdersGateway {
     client.emit('joined', { room: `restaurant:${data.restaurantId}` });
   }
 
+  emitOrderUpdated(restaurantId: string, orderId: string) {
+    this.server.to(restaurantId).emit('orderUpdated', { orderId });
+  }
+
   emitNewKitchenOrder(restaurantId: string, order: Order) {
     this.server
       .to(`restaurant:${restaurantId}`)

@@ -9,13 +9,14 @@ import { OrdersGateway } from './orders.gateway';
 
 export class CreateOrderDto {
   tableId: string;
-  items: { productId: string; quantity: number; unitPrice: number; notes?: string }[];
+  items: { productId: string; quantity: number; unitPrice: number; productNameSnapshot: string; notes?: string }[];
 }
 
 export class AddItemDto {
   productId: string;
   quantity: number;
   unitPrice: number;
+  productNameSnapshot: string;
   notes?: string;
 }
 
@@ -50,11 +51,41 @@ export class OrdersService {
     });
     const saved = await this.ordersRepo.save(order);
 
+    if (dto.items && dto.items.length > 0) {
+      const orderItems = dto.items.map(item => this.itemsRepo.create({
+        orderId: saved.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        productNameSnapshot: item.productNameSnapshot,
+        notes: item.notes,
+      }));
+      await this.itemsRepo.save(orderItems);
+    }
+
     table.status = 'occupied';
     await this.tablesRepo.save(table);
 
     this.gateway.emitTableUpdate(restaurantId, table);
-    return saved;
+    return this.getOrderById(restaurantId, saved.id);
+  }
+
+  async addItemsToOrder(restaurantId: string, orderId: string, items: AddItemDto[]) {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId, restaurantId } });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const orderItems = items.map(item => this.itemsRepo.create({
+      orderId: order.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      productNameSnapshot: item.productNameSnapshot,
+      notes: item.notes,
+    }));
+    
+    await this.itemsRepo.save(orderItems);
+    this.gateway.emitOrderUpdated(restaurantId, orderId);
+    return this.getOrderById(restaurantId, order.id);
   }
 
   async sendToKitchen(restaurantId: string, orderId: string) {

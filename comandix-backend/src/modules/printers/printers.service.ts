@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { HttpService } from '@nestjs/axios';
-import { lastValueFrom } from 'rxjs';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import { Printer } from './entities/printer.entity';
 import { PrinterRoute } from './entities/printer-route.entity';
 import { Order } from '../orders/entities/order.entity';
@@ -17,7 +17,7 @@ export class PrintersService {
     private readonly printersRepo: Repository<Printer>,
     @InjectRepository(PrinterRoute)
     private readonly routesRepo: Repository<PrinterRoute>,
-    private readonly http: HttpService,
+    @InjectQueue('printer_queue') private readonly printerQueue: Queue,
   ) {}
 
   async findAll(restaurantId: string) {
@@ -51,7 +51,8 @@ export class PrintersService {
     for (const { printer, items } of jobs.values()) {
       const ticket = this.buildTicket(order, items);
       if (printer.type === 'INTERNET') {
-        await this.sendInternet(printer, ticket);
+        await this.printerQueue.add('print_internet', { printer, ticketText: ticket });
+        this.logger.log(`Internet print job queued for ${printer.name}`);
       } else {
         // LAN: handled by the Desktop App locally
         this.logger.log(`[LAN] Print job for ${printer.name} queued for local dispatch.`);
@@ -71,24 +72,5 @@ export class PrintersService {
       '--------------------------------',
     ];
     return lines.join('\n');
-  }
-
-  private async sendInternet(printer: Printer, ticketText: string) {
-    const payload = Buffer.from(ticketText).toString('base64');
-    try {
-      await lastValueFrom(
-        this.http.post(
-          printer.endpointUrl,
-          { encoding: 'base64', payload },
-          {
-            headers: { Authorization: `Bearer ${printer.token}`, 'Content-Type': 'application/json' },
-            timeout: 6000,
-          },
-        ),
-      );
-      this.logger.log(`Internet print job sent to ${printer.name}`);
-    } catch (err) {
-      this.logger.error(`Failed to send to ${printer.name}: ${err.message}`);
-    }
   }
 }

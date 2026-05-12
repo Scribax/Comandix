@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bull';
 
 import { AuthModule } from './core/auth/auth.module';
 import { RestaurantsModule } from './modules/restaurants/restaurants.module';
@@ -30,6 +31,13 @@ import { ReportsModule } from './modules/reports/reports.module';
         autoLoadEntities: true,
         synchronize: config.get<string>('NODE_ENV') !== 'production' ||
           config.get<string>('DB_SYNC') === 'true',
+      }),
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
+        redis: config.get<string>('REDIS_URL'),
       }),
     }),
     HttpModule,
