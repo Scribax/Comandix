@@ -2,6 +2,7 @@
 services:
   nginx:
     image: nginx:alpine
+    restart: always
     ports:
       - "80:80"
     volumes:
@@ -10,14 +11,20 @@ services:
       - api
 
   api:
-    build: 
+    build:
       context: ./comandix-backend
       dockerfile: Dockerfile
     restart: always
+    # Load .env from the backend folder (DB_PASSWORD, JWT_SECRET, etc.)
+    env_file:
+      - ./comandix-backend/.env
     environment:
+      # Override these so they always use Docker service names, not localhost
       - NODE_ENV=production
-      - DATABASE_URL=postgres://postgres:password@db:5432/comandix
-      - JWT_SECRET=change_this_secret_in_production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_NAME=comandix
       - REDIS_URL=redis://redis:6379
       - PORT=3000
     depends_on:
@@ -29,12 +36,13 @@ services:
   db:
     image: postgres:15-alpine
     restart: always
+    env_file:
+      - ./comandix-backend/.env
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
       - POSTGRES_DB=comandix
-    ports:
-      - "5432:5432"
+      # POSTGRES_PASSWORD comes from env_file (DB_PASSWORD)
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -46,8 +54,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
-    ports:
-      - "6379:6379"
     volumes:
       - redisdata:/data
 
