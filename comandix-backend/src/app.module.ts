@@ -36,9 +36,15 @@ import { ReportsModule } from './modules/reports/reports.module';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => ({
-        redis: config.get<string>('REDIS_URL'),
-      }),
+      useFactory: async (config: ConfigService) => {
+        const url = new URL(config.get<string>('REDIS_URL') || 'redis://redis:6379');
+        return {
+          redis: {
+            host: url.hostname,
+            port: parseInt(url.port || '6379', 10),
+          },
+        };
+      },
     }),
     HttpModule,
     AuthModule,
