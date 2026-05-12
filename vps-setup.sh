@@ -26,7 +26,7 @@ echo "✅ Docker instalado: $(docker --version)"
 
 echo "📁 [3/5] Clonando repositorio..."
 # Reemplazar con tu URL de GitHub
-REPO_URL="https://github.com/TU_USUARIO/comandix.git"
+REPO_URL="https://github.com/Scribax/Comandix.git"
 APP_DIR="/opt/comandix"
 
 if [ -d "$APP_DIR" ]; then

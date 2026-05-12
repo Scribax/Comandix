@@ -37,14 +37,14 @@ git init
 git add .
 git commit -m "feat: initial Comandix scaffold"
 git branch -M main
-git remote add origin https://github.com/TU_USUARIO/comandix.git
+git remote add origin https://github.com/Scribax/Comandix.git
 git push -u origin main
 ```
 
 ### 2. Conectarse al VPS y ejecutar el script de setup
 ```bash
 ssh root@IP_DE_TU_VPS
-curl -fsSL https://raw.githubusercontent.com/TU_USUARIO/comandix/main/vps-setup.sh | bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Scribax/Comandix/main/vps-setup.sh)
 ```
 
 ### 3. Configurar las variables de entorno en el VPS
