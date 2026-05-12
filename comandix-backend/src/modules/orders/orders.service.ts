@@ -9,6 +9,7 @@ import { OrdersGateway } from './orders.gateway';
 
 export class CreateOrderDto {
   tableId: string;
+  terminalId?: string;
   items: { productId: string; quantity: number; unitPrice: number; productNameSnapshot: string; notes?: string }[];
 }
 
@@ -46,6 +47,7 @@ export class OrdersService {
     const order = this.ordersRepo.create({
       restaurantId,
       tableId: dto.tableId,
+      terminalId: dto.terminalId,
       userId,
       status: 'open',
     });

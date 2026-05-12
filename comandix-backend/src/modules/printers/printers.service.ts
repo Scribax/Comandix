@@ -5,6 +5,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { Printer } from './entities/printer.entity';
 import { PrinterRoute } from './entities/printer-route.entity';
+import { PrintJob } from './entities/print-job.entity';
 import { Order } from '../orders/entities/order.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 
@@ -17,6 +18,8 @@ export class PrintersService {
     private readonly printersRepo: Repository<Printer>,
     @InjectRepository(PrinterRoute)
     private readonly routesRepo: Repository<PrinterRoute>,
+    @InjectRepository(PrintJob)
+    private readonly jobsRepo: Repository<PrintJob>,
     @InjectQueue('printer_queue') private readonly printerQueue: Queue,
   ) {}
 
@@ -50,8 +53,17 @@ export class PrintersService {
     // 4. Dispatch jobs
     for (const { printer, items } of jobs.values()) {
       const ticket = this.buildTicket(order, items);
+      
+      const printJob = this.jobsRepo.create({
+        restaurantId,
+        printerId: printer.id,
+        orderId: order.id,
+        status: 'pending',
+      });
+      await this.jobsRepo.save(printJob);
+
       if (printer.type === 'INTERNET') {
-        await this.printerQueue.add('print_internet', { printer, ticketText: ticket });
+        await this.printerQueue.add('print_internet', { printer, ticketText: ticket, jobId: printJob.id });
         this.logger.log(`Internet print job queued for ${printer.name}`);
       } else {
         // LAN: handled by the Desktop App locally

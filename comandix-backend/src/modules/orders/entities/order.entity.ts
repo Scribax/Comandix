@@ -39,6 +39,9 @@ export class Order {
   @Column({ type: 'varchar', default: 'open' })
   status: OrderStatus;
 
+  @Column({ nullable: true })
+  terminalId: string;
+
   @Column({ type: 'varchar', nullable: true })
   paymentMethod: PaymentMethod;
 

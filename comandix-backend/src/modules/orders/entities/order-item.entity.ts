@@ -34,4 +34,7 @@ export class OrderItem {
 
   @Column({ nullable: true })
   notes: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  sentToKitchenAt: Date | null;
 }

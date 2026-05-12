@@ -4,12 +4,13 @@ import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
 import { Printer } from './entities/printer.entity';
 import { PrinterRoute } from './entities/printer-route.entity';
+import { PrintJob } from './entities/print-job.entity';
 import { PrintersService } from './printers.service';
 import { PrinterProcessor } from './printer.processor';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Printer, PrinterRoute]),
+    TypeOrmModule.forFeature([Printer, PrinterRoute, PrintJob]),
     HttpModule,
     BullModule.registerQueue({
       name: 'printer_queue',
