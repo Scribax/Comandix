@@ -28,7 +28,8 @@ import { ReportsModule } from './modules/reports/reports.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
+        synchronize: config.get<string>('NODE_ENV') !== 'production' ||
+          config.get<string>('DB_SYNC') === 'true',
       }),
     }),
     HttpModule,
