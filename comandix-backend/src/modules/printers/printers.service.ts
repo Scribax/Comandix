@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import type { Queue } from 'bull';
 import { Printer } from './entities/printer.entity';
 import { PrinterRoute } from './entities/printer-route.entity';
 import { PrintJob } from './entities/print-job.entity';

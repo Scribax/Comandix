@@ -86,7 +86,7 @@ export class OrdersService {
     }));
     
     await this.itemsRepo.save(orderItems);
-    this.gateway.emitOrderUpdated(restaurantId, orderId);
+    this.gateway.emitOrderUpdated(restaurantId, order);
     return this.getOrderById(restaurantId, order.id);
   }
 
