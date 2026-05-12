@@ -1,0 +1,9 @@
+# Comandix — Root
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets — NUNCA subir al repo
+*.env
+!*.env.example
