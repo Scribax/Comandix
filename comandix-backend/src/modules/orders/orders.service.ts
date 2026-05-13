@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, In } from 'typeorm';
-import { Order } from './entities/order.entity';
+import { Order, OrderStatus } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Table } from '../layout/tables/entities/table.entity';
 import { PrintersService } from '../printers/printers.service';
@@ -202,5 +202,4 @@ export class OrdersService {
     
     return this.ordersRepo.remove(order);
   }
-}
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Order } from '../orders/entities/order.entity';
+import { Order, OrderStatus } from '../orders/entities/order.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class ReportsService {
     end.setHours(23, 59, 59, 999);
 
     const orders = await this.ordersRepo.find({
-      where: { restaurantId, status: 'closed', closedAt: Between(start, end) },
+      where: { restaurantId, status: OrderStatus.PAID, closedAt: Between(start, end) } as any,
     });
 
     const totalSales = orders.reduce((sum, o) => sum + o.total, 0);
