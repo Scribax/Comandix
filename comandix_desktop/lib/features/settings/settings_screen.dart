@@ -1038,11 +1038,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ),
                     const SizedBox(height: 16),
                     if (selectedType == 'LAN') ...[
-                      TextField(
-                        controller: ipController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(labelText: 'Dirección IP', hintText: '192.168.1.100', labelStyle: TextStyle(color: Colors.white38)),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _buildPrinterField('Dirección IP', ipController, Icons.router_rounded, hint: '192.168.1.100'),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 1,
+                            child: _buildPrinterField('Puerto', portController, Icons.settings_input_component_rounded, hint: '9100'),
+                          ),
+                        ],
                       ),
+                    ],
+                    if (selectedType == 'INTERNET') ...[
+                      _buildPrinterField('URL Servidor Cloud', endpointController, Icons.cloud_queue_rounded, hint: 'https://api.comandix.com/v1'),
+                      const SizedBox(height: 12),
+                      _buildPrinterField('Token de Acceso', tokenController, Icons.key_rounded, hint: 'ID de dispositivo o clave'),
                     ],
                   ] else ...[
                     const SizedBox(height: 12),
@@ -1055,7 +1068,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              selectedType == 'SYSTEM' ? 'Modo Windows (USB/Driver)' : 'Modo Red (${ipController.text})',
+                              selectedType == 'SYSTEM' 
+                                ? 'Modo Windows (USB/Driver)' 
+                                : selectedType == 'LAN'
+                                  ? 'Modo Red (${ipController.text}:${portController.text})'
+                                  : 'Modo Cloud (Configurado)',
                               style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -1295,6 +1312,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             fontWeight: FontWeight.bold,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPrinterField(String label, TextEditingController controller, IconData icon, {String? hint}) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+        hintStyle: const TextStyle(color: Colors.white10),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.02),
+        prefixIcon: Icon(icon, color: AppColors.accent.withOpacity(0.5), size: 18),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }
