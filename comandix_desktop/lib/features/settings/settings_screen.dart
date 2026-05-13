@@ -883,7 +883,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           : discoveredIps.isEmpty
                               ? Column(
                                   children: [
-                                    Icon(Icons.SearchOff_rounded, color: Colors.white.withOpacity(0.1), size: 48),
+                                    Icon(Icons.search_off_rounded, color: Colors.white.withOpacity(0.1), size: 48),
                                     const SizedBox(height: 16),
                                     const Text('No se detectaron impresoras', style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
