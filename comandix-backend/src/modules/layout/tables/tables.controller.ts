@@ -20,6 +20,12 @@ export class TablesController {
   @Roles('admin', 'manager')
   create(@TenantId() restaurantId: string, @Body() body: any) { return this.svc.create(restaurantId, body); }
 
+  @Put('bulk')
+  @Roles('admin', 'manager')
+  bulkUpdate(@TenantId() restaurantId: string, @Body() body: any[]) { 
+    return this.svc.bulkUpdate(restaurantId, body); 
+  }
+
   @Put(':id')
   @Roles('admin', 'manager')
   update(@Param('id') id: string, @Body() body: any) { return this.svc.update(id, body); }

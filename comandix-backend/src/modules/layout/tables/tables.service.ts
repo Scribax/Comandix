@@ -10,5 +10,11 @@ export class TablesService {
   findOne(restaurantId: string, id: string) { return this.repo.findOne({ where: { id, restaurantId } }); }
   create(restaurantId: string, data: Partial<Table>) { return this.repo.save(this.repo.create({ ...data, restaurantId })); }
   update(id: string, data: Partial<Table>) { return this.repo.update(id, data); }
+  
+  async bulkUpdate(restaurantId: string, data: Partial<Table>[]) {
+    const tables = data.map(t => this.repo.create({ ...t, restaurantId }));
+    return this.repo.save(tables);
+  }
+
   remove(id: string) { return this.repo.delete(id); }
 }

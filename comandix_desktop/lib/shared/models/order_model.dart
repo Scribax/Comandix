@@ -1,4 +1,5 @@
 import 'order_item_model.dart';
+import 'table_model.dart';
 
 class OrderModel {
   final String id;
@@ -10,6 +11,8 @@ class OrderModel {
   final double tax;
   final double total;
   final List<OrderItemModel> items;
+  final DateTime createdAt;
+  final TableModel? table;
 
   OrderModel({
     required this.id,
@@ -21,13 +24,15 @@ class OrderModel {
     required this.tax,
     required this.total,
     required this.items,
+    required this.createdAt,
+    this.table,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: json['id'] as String,
       tableId: json['tableId'] as String,
-      waiterId: json['userId'] as String?, // Map userId from DB to waiterId in model
+      waiterId: json['userId'] as String?,
       status: json['status'] as String,
       terminalId: json['terminalId'] as String?,
       subtotal: double.tryParse(json['subtotal']?.toString() ?? '0') ?? 0.0,
@@ -37,6 +42,8 @@ class OrderModel {
               ?.map((item) => OrderItemModel.fromJson(item as Map<String, dynamic>))
               .toList() ??
           [],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      table: json['table'] != null ? TableModel.fromJson(json['table']) : null,
     );
   }
 }

@@ -1,13 +1,18 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../pos_repository.dart';
+import '../../../core/network/socket_client.dart';
 import '../../../shared/models/order_item_model.dart';
 import 'pos_event.dart';
 import 'pos_state.dart';
 
 class PosBloc extends Bloc<PosEvent, PosState> {
   final PosRepository repository;
+  final SocketClient socketClient;
+  late StreamSubscription _orderUpdatedSubscription;
+  late StreamSubscription _tableStatusSubscription;
 
-  PosBloc({required this.repository}) : super(PosInitial()) {
+  PosBloc({required this.repository, required this.socketClient}) : super(PosInitial()) {
     on<PosDataLoaded>(_onLoadData);
     on<PosSectorSelected>(_onSectorSelected);
     on<PosTableSelected>(_onTableSelected);
@@ -19,6 +24,24 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     on<PosOrderClosed>(_onOrderClosed);
     on<PosViewChanged>(_onViewChanged);
     on<PosItemVoided>(_onItemVoided);
+
+    // Listen to real-time events
+    _orderUpdatedSubscription = socketClient.onOrderUpdated.listen((_) {
+      // Just reload the data to sync orders
+      add(PosDataLoaded());
+    });
+
+    _tableStatusSubscription = socketClient.onTableStatusChanged.listen((_) {
+      // Just reload the data to sync tables
+      add(PosDataLoaded());
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _orderUpdatedSubscription.cancel();
+    _tableStatusSubscription.cancel();
+    return super.close();
   }
 
   void _onViewChanged(PosViewChanged event, Emitter<PosState> emit) {

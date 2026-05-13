@@ -16,8 +16,12 @@ class AuthRepository {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final token = response.data['access_token'];
+        final restaurantId = response.data['user']['restaurantId'];
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', token);
+        if (restaurantId != null) {
+          await prefs.setString('restaurant_id', restaurantId);
+        }
       } else {
         throw Exception('Failed to login');
       }

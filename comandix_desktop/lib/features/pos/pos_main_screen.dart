@@ -10,10 +10,16 @@ import 'bloc/pos_state.dart';
 import 'widgets/table_card.dart';
 import '../orders/orders_screen.dart';
 import '../kitchen/kds_screen.dart';
+import '../kitchen/bloc/kds_bloc.dart';
+import '../kitchen/bloc/kds_event.dart';
 import '../delivery/delivery_screen.dart';
 import '../history/history_screen.dart';
 import '../settings/settings_screen.dart';
 import 'order_taking_screen.dart';
+import '../floor_plan/floor_plan_editor.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/network/socket_client.dart';
 
 class PosMainScreen extends StatefulWidget {
   const PosMainScreen({super.key});
@@ -26,7 +32,17 @@ class _PosMainScreenState extends State<PosMainScreen> {
   @override
   void initState() {
     super.initState();
+    _initConnection();
     context.read<PosBloc>().add(PosDataLoaded());
+    context.read<KdsBloc>().add(KdsStarted());
+  }
+
+  Future<void> _initConnection() async {
+    final prefs = await SharedPreferences.getInstance();
+    final restaurantId = prefs.getString('restaurant_id');
+    if (restaurantId != null) {
+      context.read<PosBloc>().socketClient.connect(restaurantId);
+    }
   }
 
   @override
@@ -219,7 +235,55 @@ class _PosMainScreenState extends State<PosMainScreen> {
                 )
               ],
             ),
-          )
+          ),
+          const SizedBox(width: 16),
+          // Botón Editar Plano
+          ElevatedButton.icon(
+            onPressed: () {
+              final state = context.read<PosBloc>().state;
+              if (state is PosLoaded) {
+                final currentSector = state.sectors.firstWhere((s) => s.id == state.selectedSectorId);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FloorPlanEditor(
+                      sector: currentSector,
+                      initialTables: state.tables.where((t) => t.sectorId == currentSector.id).toList(),
+                      onSave: (updatedTables) async {
+                        try {
+                          await context.read<PosBloc>().repository.updateTables(updatedTables.cast());
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Plano guardado correctamente')),
+                            );
+                            context.read<PosBloc>().add(PosDataLoaded());
+                            Navigator.pop(context);
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.edit_road, size: 18),
+            label: const Text('Editar Plano'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6).withOpacity(0.1),
+              foregroundColor: const Color(0xFF3B82F6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFF3B82F6), width: 1),
+              ),
+            ),
+          ),
         ],
       ),
     );

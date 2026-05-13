@@ -70,4 +70,8 @@ class PosRepository {
     final response = await apiClient.dio.post('/orders/$orderId/items/$itemId/void');
     return OrderModel.fromJson(response.data);
   }
+
+  Future<void> updateTables(List<TableModel> tables) async {
+    await apiClient.dio.put('/tables/bulk', data: tables.map((t) => t.toJson()).toList());
+  }
 }

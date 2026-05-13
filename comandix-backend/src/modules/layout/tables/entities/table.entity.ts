@@ -54,6 +54,21 @@ export class Table {
   @Column({ type: 'varchar', default: 'free' })
   status: TableStatus;
 
+  @Column({ type: 'varchar', default: 'table' })
+  type: string; // 'table', 'wall', 'decoration', 'label'
+
+  @Column({ type: 'varchar', nullable: true })
+  icon: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  color: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  labelText: string;
+
+  @Column({ type: 'int', default: 0 })
+  zIndex: number;
+
   @UpdateDateColumn()
   updatedAt: Date;
 }

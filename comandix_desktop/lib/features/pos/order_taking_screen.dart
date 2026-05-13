@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shared/models/table_model.dart';
 import '../../../shared/models/product_model.dart';
+import '../orders/widgets/payment_dialog.dart';
 import 'bloc/pos_bloc.dart';
 import 'bloc/pos_event.dart';
 import 'bloc/pos_state.dart';
@@ -275,7 +276,17 @@ class OrderTakingScreen extends StatelessWidget {
                                   child: ElevatedButton(
                                     onPressed: (activeOrder != null && draftItems.isEmpty)
                                         ? () {
-                                            context.read<PosBloc>().add(PosOrderClosed(activeOrder.id, 'cash'));
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => PaymentDialog(
+                                                order: activeOrder,
+                                                onConfirm: (method) {
+                                                  context.read<PosBloc>().add(PosOrderClosed(activeOrder.id, method));
+                                                  Navigator.pop(context); // Cerrar diálogo
+                                                  Navigator.pop(context); // Volver al Salón
+                                                },
+                                              ),
+                                            );
                                           }
                                         : null,
                                     style: ElevatedButton.styleFrom(

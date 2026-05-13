@@ -2,11 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../pos/bloc/pos_bloc.dart';
 import '../pos/bloc/pos_state.dart';
+import '../pos/bloc/pos_event.dart';
 import '../../../shared/models/order_model.dart';
 import 'dart:ui';
+import 'dart:async';
 
-class OrdersScreen extends StatelessWidget {
+import '../../../shared/models/table_model.dart';
+import 'widgets/payment_dialog.dart';
+
+class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
+
+  @override
+  State<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends State<OrdersScreen> {
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -96,145 +122,26 @@ class OrdersScreen extends StatelessWidget {
                       crossAxisCount: 3,
                       crossAxisSpacing: 24,
                       mainAxisSpacing: 24,
-                      childAspectRatio: 1.2,
+                      childAspectRatio: 1.15,
                     ),
                     itemCount: state.activeOrders.length,
                     itemBuilder: (context, index) {
                       final order = state.activeOrders[index];
                       final table = state.tables.firstWhere((t) => t.id == order.tableId);
-                      final statusColor = _getStatusColor(order.status);
                       
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E293B).withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: statusColor.withOpacity(0.05),
-                                  blurRadius: 20,
-                                  spreadRadius: -5,
-                                )
-                              ],
+                      return TweenAnimationBuilder(
+                        duration: Duration(milliseconds: 300 + (index * 50)),
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Opacity(
+                            opacity: value,
+                            child: Transform.scale(
+                              scale: 0.95 + (0.05 * value),
+                              child: child,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header with Top Accent
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.1),
-                                    border: Border(bottom: BorderSide(color: statusColor.withOpacity(0.2))),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(Icons.table_restaurant, size: 18, color: statusColor),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            table.name,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: statusColor,
-                                          borderRadius: BorderRadius.circular(100),
-                                        ),
-                                        child: Text(
-                                          _getStatusText(order.status),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Items List
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: ListView.separated(
-                                      itemCount: order.items.length,
-                                      separatorBuilder: (context, index) => Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 4),
-                                        child: Divider(color: Colors.white.withOpacity(0.05), height: 1),
-                                      ),
-                                      itemBuilder: (context, i) {
-                                        final item = order.items[i];
-                                        return Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withOpacity(0.05),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                '${item.quantity}x', 
-                                                style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                item.productNameSnapshot, 
-                                                style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
-                                              ),
-                                            ),
-                                            Text(
-                                              '\$${item.unitPriceSnapshot.toStringAsFixed(0)}',
-                                              style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                // Footer Total
-                                Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '15 min', // Placeholder for time elapsed
-                                        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13, fontWeight: FontWeight.w600),
-                                      ),
-                                      Text(
-                                        '\$${order.total.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          color: Colors.white, 
-                                          fontWeight: FontWeight.w900, 
-                                          fontSize: 20,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
+                          );
+                        },
+                        child: _buildOrderCard(context, order, table),
                       );
                     },
                   );
@@ -242,6 +149,178 @@ class OrdersScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderCard(BuildContext context, OrderModel order, TableModel table) {
+    final statusColor = _getStatusColor(order.status);
+    final now = DateTime.now();
+    final elapsed = now.difference(order.createdAt);
+    final minutes = elapsed.inMinutes;
+
+    Color timeColor = Colors.white.withOpacity(0.4);
+    if (minutes >= 20) timeColor = const Color(0xFFEF4444); // Red
+    else if (minutes >= 10) timeColor = const Color(0xFFF59E0B); // Amber
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          context.read<PosBloc>().add(PosTableSelected(table.id));
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B).withOpacity(0.7),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: statusColor.withOpacity(0.05),
+                    blurRadius: 20,
+                    spreadRadius: -5,
+                  )
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      border: Border(bottom: BorderSide(color: statusColor.withOpacity(0.2))),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.table_restaurant, size: 18, color: statusColor),
+                            const SizedBox(width: 8),
+                            Text(
+                              table.name,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Text(
+                            _getStatusText(order.status),
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Items List
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: order.items.length > 3 ? 4 : order.items.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          if (i == 3 && order.items.length > 3) {
+                            return Text(
+                              '+ ${order.items.length - 3} items más...',
+                              style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 12, fontStyle: FontStyle.italic),
+                            );
+                          }
+                          final item = order.items[i];
+                          return Row(
+                            children: [
+                              Text(
+                                '${item.quantity}x', 
+                                style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  item.productNameSnapshot, 
+                                  style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  // Footer
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.access_time_rounded, size: 14, color: timeColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              '$minutes min',
+                              style: TextStyle(color: timeColor, fontSize: 13, fontWeight: FontWeight.w900),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              '\$${order.total.toStringAsFixed(0)}',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => PaymentDialog(
+                                    order: order,
+                                    onConfirm: (method) {
+                                      context.read<PosBloc>().add(PosOrderClosed(order.id, method));
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'COBRAR',
+                                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
