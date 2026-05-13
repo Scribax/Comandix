@@ -855,7 +855,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isScanning || discoveredPrinters.isNotEmpty || (!isScanning && discoveredPrinters.isEmpty && ipController.text.isEmpty)) ...[
+                  if (isScanning || discoveredPrinters.isNotEmpty || (!isScanning && discoveredPrinters.isEmpty)) ...[
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text('BÚSQUEDA AUTOMÁTICA', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
@@ -863,7 +863,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
-                      padding: EdgeInsets.all(isScanning || discoveredPrinters.isEmpty ? 24 : 8),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.02),
                         borderRadius: BorderRadius.circular(24),
@@ -885,46 +885,46 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           : discoveredPrinters.isEmpty
                               ? Column(
                                   children: [
-                                    Icon(Icons.search_off_rounded, color: Colors.white.withOpacity(0.1), size: 48),
+                                    const Icon(Icons.search_rounded, color: Colors.white10, size: 48),
                                     const SizedBox(height: 16),
-                                    const Text('No se detectaron dispositivos', style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    const Text('Lista vacía', style: TextStyle(color: Colors.white24, fontSize: 13, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
-                                    const Text('Puedes configurarla manualmente abajo', style: TextStyle(color: Colors.white24, fontSize: 11)),
+                                    const Text('Toca "BUSCAR EN RED" arriba', style: TextStyle(color: Colors.white12, fontSize: 11)),
                                   ],
-                                ).animate().fadeIn()
+                                )
                               : ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: discoveredPrinters.length,
-                                  itemBuilder: (context, idx) {
-                                    final p = discoveredPrinters[idx];
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: ListTile(
-                                        dense: true,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        tileColor: Colors.white.withOpacity(0.03),
-                                        leading: Icon(
-                                          p.type == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded,
-                                          color: AppColors.accent,
-                                          size: 18,
-                                        ),
-                                        title: Text(p.name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                        subtitle: Text(p.type == 'SYSTEM' ? 'Impresora de Windows' : 'IP: ${p.ip}', style: const TextStyle(color: Colors.white38, fontSize: 10)),
-                                        trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent, size: 18),
-                                        onTap: () {
-                                          setDialogState(() {
-                                            nameController.text = p.name;
-                                            selectedType = p.type;
-                                            if (p.type == 'LAN') {
-                                              ipController.text = p.ip!;
-                                            }
-                                          });
-                                        },
-                                      ),
-                                    ).animate().slideX(begin: 0.1, duration: 300.ms).fadeIn();
-                                  },
-                                ),
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: discoveredPrinters.length,
+                              itemBuilder: (context, idx) {
+                                final p = discoveredPrinters[idx];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: ListTile(
+                                    dense: true,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    tileColor: Colors.white.withOpacity(0.03),
+                                    leading: Icon(
+                                      p.type == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded,
+                                      color: AppColors.accent,
+                                      size: 18,
+                                    ),
+                                    title: Text(p.name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    subtitle: Text(p.type == 'SYSTEM' ? 'Impresora de Windows' : 'IP: ${p.ip}', style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                                    trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent, size: 18),
+                                    onTap: () {
+                                      setDialogState(() {
+                                        nameController.text = p.name;
+                                        selectedType = p.type;
+                                        if (p.type == 'LAN') {
+                                          ipController.text = p.ip!;
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ).animate().slideX(begin: 0.1, duration: 300.ms).fadeIn();
+                              },
+                            ),
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -1001,26 +1001,36 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
             ElevatedButton(
-              onPressed: () {
-                final data = {
-                  'name': nameController.text,
-                  'type': selectedType,
-                  'ipAddress': ipController.text,
-                  'port': int.tryParse(portController.text),
-                  'endpointUrl': endpointController.text,
-                  'token': tokenController.text,
-                  'productionSectorId': selectedSectorId,
-                  'isActive': true,
-                };
-                if (printer == null) {
-                  context.read<PosBloc>().add(PosPrinterCreated(data));
-                } else {
-                  context.read<PosBloc>().add(PosPrinterUpdated(printer.id, data));
-                }
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.black),
-              child: const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: (nameController.text.isEmpty || 
+                         (selectedType == 'LAN' && ipController.text.isEmpty) ||
+                         (selectedType == 'INTERNET' && (endpointController.text.isEmpty || tokenController.text.isEmpty)))
+                ? null
+                : () {
+                  final data = {
+                    'name': nameController.text,
+                    'type': selectedType,
+                    'ipAddress': selectedType == 'LAN' ? ipController.text : null,
+                    'port': selectedType == 'LAN' ? int.tryParse(portController.text) ?? 9100 : null,
+                    'endpointUrl': selectedType == 'INTERNET' ? endpointController.text : null,
+                    'token': selectedType == 'INTERNET' ? tokenController.text : null,
+                    'productionSectorId': selectedSectorId,
+                    'isActive': true,
+                  };
+                  
+                  if (printer == null) {
+                    context.read<PosBloc>().add(PosPrinterCreated(data));
+                  } else {
+                    context.read<PosBloc>().add(PosPrinterUpdated(printer.id, data));
+                  }
+                  Navigator.pop(context);
+                },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.backgroundSecondary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: Text(printer == null ? 'GUARDAR' : 'ACTUALIZAR', style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
