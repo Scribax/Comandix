@@ -158,7 +158,7 @@ export class OrdersService {
         order: { createdAt: 'DESC' },
       });
     } catch (e) {
-      throw new Error(`DEBUG_ERROR: ${e.message} - ${e.stack}`);
+      return { debug_error: e.message, stack: e.stack };
     }
   }
 
