@@ -1006,10 +1006,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                       ),
                     ),
                   ],
-                ],
-              ),
-            ),
-          ),
                   const SizedBox(height: 48),
                   SizedBox(
                     width: double.infinity,
