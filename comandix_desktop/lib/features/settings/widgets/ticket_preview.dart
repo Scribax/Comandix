@@ -1,43 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:io';
 
-class TicketConfigModel {
-  final String businessName;
-  final String address;
-  final String phone;
-  final String footerMessage;
-  final bool showLogo;
-  final bool showDate;
-  final bool showTable;
+enum TicketBlockType { header, items, totals, footer, image, qr, divider }
 
-  TicketConfigModel({
-    this.businessName = 'COMANDIX RESTO',
-    this.address = 'Calle Falsa 123, Ciudad',
-    this.phone = '+54 11 1234-5678',
-    this.footerMessage = '¡Gracias por su visita!',
-    this.showLogo = true,
-    this.showDate = true,
-    this.showTable = true,
+class TicketBlock {
+  final String id;
+  final TicketBlockType type;
+  final Map<String, dynamic> data;
+  bool isVisible;
+
+  TicketBlock({
+    required this.id,
+    required this.type,
+    required this.data,
+    this.isVisible = true,
   });
 
-  TicketConfigModel copyWith({
-    String? businessName,
-    String? address,
-    String? phone,
-    String? footerMessage,
-    bool? showLogo,
-    bool? showDate,
-    bool? showTable,
-  }) {
-    return TicketConfigModel(
-      businessName: businessName ?? this.businessName,
-      address: address ?? this.address,
-      phone: phone ?? this.phone,
-      footerMessage: footerMessage ?? this.footerMessage,
-      showLogo: showLogo ?? this.showLogo,
-      showDate: showDate ?? this.showDate,
-      showTable: showTable ?? this.showTable,
+  TicketBlock copyWith({Map<String, dynamic>? data, bool? isVisible}) {
+    return TicketBlock(
+      id: id,
+      type: type,
+      data: data ?? this.data,
+      isVisible: isVisible ?? this.isVisible,
     );
+  }
+}
+
+class TicketConfigModel {
+  final List<TicketBlock> blocks;
+
+  TicketConfigModel({
+    List<TicketBlock>? blocks,
+  }) : blocks = blocks ?? _defaultBlocks();
+
+  static List<TicketBlock> _defaultBlocks() => [
+    TicketBlock(id: 'img', type: TicketBlockType.image, data: {'path': null, 'size': 60.0}),
+    TicketBlock(id: 'hdr', type: TicketBlockType.header, data: {
+      'name': 'COMANDIX RESTO',
+      'address': 'Calle Falsa 123, Ciudad',
+      'phone': '+54 11 1234-5678',
+    }),
+    TicketBlock(id: 'div1', type: TicketBlockType.divider, data: {}),
+    TicketBlock(id: 'itm', type: TicketBlockType.items, data: {}),
+    TicketBlock(id: 'div2', type: TicketBlockType.divider, data: {}),
+    TicketBlock(id: 'tot', type: TicketBlockType.totals, data: {}),
+    TicketBlock(id: 'qr', type: TicketBlockType.qr, data: {'content': 'https://comandix.com/pay', 'size': 80.0}, isVisible: false),
+    TicketBlock(id: 'ftr', type: TicketBlockType.footer, data: {'message': '¡Gracias por su visita!'}),
+  ];
+
+  TicketConfigModel copyWith({List<TicketBlock>? blocks}) {
+    return TicketConfigModel(blocks: blocks ?? this.blocks);
+  }
+
+  String generateRawTicket() {
+    StringBuffer sb = StringBuffer();
+    for (var block in blocks) {
+      if (!block.isVisible) continue;
+      switch (block.type) {
+        case TicketBlockType.header:
+          sb.writeln(block.data['name'].toString().toUpperCase());
+          sb.writeln(block.data['address']);
+          sb.writeln('Tel: ${block.data['phone']}');
+          break;
+        case TicketBlockType.divider:
+          sb.writeln('--------------------------------');
+          break;
+        case TicketBlockType.items:
+          sb.writeln('2x Hamburguesa Pro       12.500');
+          sb.writeln('1x Coca Cola 500ml        2.100');
+          sb.writeln('1x Papas Grandes          4.500');
+          break;
+        case TicketBlockType.totals:
+          sb.writeln('TOTAL                    \$19.100');
+          break;
+        case TicketBlockType.footer:
+          sb.writeln('\n${block.data['message']}');
+          break;
+        case TicketBlockType.image:
+          sb.writeln('[LOGO]');
+          break;
+        case TicketBlockType.qr:
+          sb.writeln('[QR CODE: ${block.data['content']}]');
+          break;
+      }
+    }
+    return sb.toString();
   }
 }
 
@@ -65,100 +113,98 @@ class TicketPreview extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Ripped paper effect top
             _buildRippedEdge(),
-            
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Column(
-                children: [
-                  if (config.showLogo)
-                    const Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.black87)
-                        .animate().scale(duration: 400.ms),
-                  
-                  const SizedBox(height: 12),
-                  Text(
-                    config.businessName.toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      fontFamily: 'Courier',
-                    ),
-                  ),
-                  Text(
-                    config.address,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.black54, fontSize: 10, fontFamily: 'Courier'),
-                  ),
-                  Text(
-                    'Tel: ${config.phone}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.black54, fontSize: 10, fontFamily: 'Courier'),
-                  ),
-                  
-                  const SizedBox(height: 15),
-                  const Divider(color: Colors.black12, thickness: 1, height: 1),
-                  const SizedBox(height: 10),
-                  
-                  if (config.showTable)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('MESA: 12', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: 'Courier')),
-                        Text('PERSONAS: 4', style: TextStyle(color: Colors.black, fontFamily: 'Courier')),
-                      ],
-                    ),
-                  
-                  if (config.showDate)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'FECHA: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year} 20:45',
-                        style: const TextStyle(color: Colors.black87, fontSize: 9, fontFamily: 'Courier'),
-                      ),
-                    ),
-                  
-                  const SizedBox(height: 15),
-                  _buildItemRow('2x Hamburguesa Pro', '12.500'),
-                  _buildItemRow('1x Coca Cola 500ml', '2.100'),
-                  _buildItemRow('1x Papas Grandes', '4.500'),
-                  
-                  const SizedBox(height: 15),
-                  const Divider(color: Colors.black, thickness: 1, height: 1),
-                  const SizedBox(height: 8),
-                  
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('TOTAL', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'Courier')),
-                      Text('\$19.100', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'Courier')),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 25),
-                  Text(
-                    config.footerMessage,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      fontFamily: 'Courier',
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                children: config.blocks.where((b) => b.isVisible).map((block) {
+                  return _buildBlock(block);
+                }).toList(),
               ),
             ),
-            
-            // Ripped paper effect bottom
             _buildRippedEdge(isBottom: true),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildBlock(TicketBlock block) {
+    switch (block.type) {
+      case TicketBlockType.image:
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: block.data['path'] != null
+              ? Image.file(File(block.data['path']), height: block.data['size'])
+              : Icon(Icons.image_rounded, size: block.data['size'], color: Colors.black12),
+        );
+      case TicketBlockType.header:
+        return Column(
+          children: [
+            Text(
+              block.data['name'].toUpperCase(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18, fontFamily: 'Courier'),
+            ),
+            Text(
+              block.data['address'],
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black54, fontSize: 10, fontFamily: 'Courier'),
+            ),
+            Text(
+              'Tel: ${block.data['phone']}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.black54, fontSize: 10, fontFamily: 'Courier'),
+            ),
+            const SizedBox(height: 10),
+          ],
+        );
+      case TicketBlockType.divider:
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Divider(color: Colors.black12, thickness: 1, height: 1),
+        );
+      case TicketBlockType.items:
+        return Column(
+          children: [
+            _buildItemRow('2x Hamburguesa Pro', '12.500'),
+            _buildItemRow('1x Coca Cola 500ml', '2.100'),
+            _buildItemRow('1x Papas Grandes', '4.500'),
+          ],
+        );
+      case TicketBlockType.totals:
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('TOTAL', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'Courier')),
+              Text('\$19.100', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'Courier')),
+            ],
+          ),
+        );
+      case TicketBlockType.qr:
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            children: [
+              Icon(Icons.qr_code_2_rounded, size: block.data['size'], color: Colors.black87),
+              const Text('ESCANEA PARA PAGAR', style: TextStyle(color: Colors.black54, fontSize: 8, fontFamily: 'Courier')),
+            ],
+          ),
+        );
+      case TicketBlockType.footer:
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            block.data['message'],
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.black54, fontSize: 11, fontStyle: FontStyle.italic, fontFamily: 'Courier'),
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Widget _buildItemRow(String name, String price) {

@@ -11,7 +11,9 @@ import '../../shared/models/production_sector_model.dart';
 import '../../shared/models/printer_model.dart';
 import '../../core/utils/printer_scanner.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/print_dispatcher.dart';
 import './widgets/ticket_preview.dart';
+import 'package:file_picker/file_picker.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -190,11 +192,24 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           _showProductDialog(categories: state.categories);
         } else if (_tabController.index == 2) {
           _showProductionSectorDialog();
-        } else {
+        } else if (_tabController.index == 3) {
           _showPrinterDialog();
+        } else {
+          // TAB 4: Ticket Designer - TEST PRINT
+          if (state.printers.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Configura al menos una impresora para probar')),
+            );
+            return;
+          }
+          final rawText = _ticketConfig.generateRawTicket();
+          PrintDispatcher.dispatch(state.printers.first, rawText);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Impresión de prueba enviada a: ${state.printers.first.name}')),
+          );
         }
       },
-      icon: const Icon(Icons.add, size: 20),
+      icon: Icon(_tabController.index == 4 ? Icons.print_rounded : Icons.add, size: 20),
       label: Text(
         _tabController.index == 0 
           ? 'Añadir Categoría' 
@@ -204,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ? 'Añadir Sector'
               : _tabController.index == 3
                 ? 'Añadir Impresora'
-                : 'Guardar Plantilla'
+                : 'Imprimir Prueba'
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.accent,
@@ -1097,48 +1112,39 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Editor Form
+        // Editor Reorderable List
         Expanded(
           flex: 2,
-          child: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.02),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('DATOS DEL ESTABLECIMIENTO', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  const SizedBox(height: 24),
-                  _buildDesignerField('Nombre del Negocio', _ticketConfig.businessName, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(businessName: val))),
-                  const SizedBox(height: 16),
-                  _buildDesignerField('Dirección', _ticketConfig.address, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(address: val))),
-                  const SizedBox(height: 16),
-                  _buildDesignerField('Teléfono', _ticketConfig.phone, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(phone: val))),
-                  const SizedBox(height: 32),
-                  
-                  const Text('MENSAJE DE PIE DE PÁGINA', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  const SizedBox(height: 16),
-                  _buildDesignerField('Mensaje', _ticketConfig.footerMessage, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(footerMessage: val))),
-                  const SizedBox(height: 32),
-                  
-                  const Text('OPCIONES DE VISIBILIDAD', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  const SizedBox(height: 16),
-                  _buildDesignerToggle('Mostrar Logo', _ticketConfig.showLogo, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(showLogo: val))),
-                  _buildDesignerToggle('Mostrar Fecha y Hora', _ticketConfig.showDate, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(showDate: val))),
-                  _buildDesignerToggle('Mostrar Info de Mesa', _ticketConfig.showTable, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(showTable: val))),
-                ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(left: 16, bottom: 16),
+                child: Text('DISEÑO DE COMPOSICIÓN (ARRASTRA PARA REORDENAR)', 
+                  style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
               ),
-            ),
+              Expanded(
+                child: ReorderableListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  onReorder: (oldIdx, newIdx) {
+                    setState(() {
+                      if (newIdx > oldIdx) newIdx -= 1;
+                      final item = _ticketConfig.blocks.removeAt(oldIdx);
+                      _ticketConfig.blocks.insert(newIdx, item);
+                    });
+                  },
+                  children: _ticketConfig.blocks.map((block) {
+                    return _buildBlockEditorCard(block);
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         ),
         
         const SizedBox(width: 40),
         
-        // Previewer
+        // Previewer (Sticky)
         Expanded(
           flex: 1,
           child: Column(
@@ -1155,6 +1161,92 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         ),
       ],
     );
+  }
+
+  Widget _buildBlockEditorCard(TicketBlock block) {
+    return Card(
+      key: ValueKey(block.id),
+      margin: const EdgeInsets.only(bottom: 12),
+      color: Colors.white.withOpacity(0.02),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: block.isVisible ? Colors.white.withOpacity(0.1) : Colors.white10),
+      ),
+      child: ExpansionTile(
+        key: PageStorageKey(block.id),
+        leading: Icon(_getBlockIcon(block.type), color: block.isVisible ? AppColors.accent : Colors.white24),
+        title: Text(block.type.name.toUpperCase(), 
+          style: TextStyle(color: block.isVisible ? Colors.white : Colors.white24, fontWeight: FontWeight.bold, fontSize: 12)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(block.isVisible ? Icons.visibility : Icons.visibility_off, size: 20, color: Colors.white38),
+              onPressed: () => setState(() => block.isVisible = !block.isVisible),
+            ),
+            const Icon(Icons.drag_indicator, color: Colors.white10),
+          ],
+        ),
+        childrenPadding: const EdgeInsets.all(20),
+        children: [
+          _buildBlockContentEditor(block),
+        ],
+      ),
+    );
+  }
+
+  IconData _getBlockIcon(TicketBlockType type) {
+    switch (type) {
+      case TicketBlockType.header: return Icons.business_rounded;
+      case TicketBlockType.image: return Icons.image_rounded;
+      case TicketBlockType.items: return Icons.list_alt_rounded;
+      case TicketBlockType.totals: return Icons.payments_rounded;
+      case TicketBlockType.footer: return Icons.chat_bubble_outline_rounded;
+      case TicketBlockType.divider: return Icons.remove_rounded;
+      case TicketBlockType.qr: return Icons.qr_code_rounded;
+    }
+  }
+
+  Widget _buildBlockContentEditor(TicketBlock block) {
+    switch (block.type) {
+      case TicketBlockType.header:
+        return Column(
+          children: [
+            _buildDesignerField('Nombre del Negocio', block.data['name'], (val) => setState(() => block.data['name'] = val)),
+            const SizedBox(height: 12),
+            _buildDesignerField('Dirección', block.data['address'], (val) => setState(() => block.data['address'] = val)),
+            const SizedBox(height: 12),
+            _buildDesignerField('Teléfono', block.data['phone'], (val) => setState(() => block.data['phone'] = val)),
+          ],
+        );
+      case TicketBlockType.footer:
+        return _buildDesignerField('Mensaje de Pie', block.data['message'], (val) => setState(() => block.data['message'] = val));
+      case TicketBlockType.image:
+        return Column(
+          children: [
+            if (block.data['path'] != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Image.file(File(block.data['path']), height: 60),
+              ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+                if (result != null) {
+                  setState(() => block.data['path'] = result.files.single.path);
+                }
+              },
+              icon: const Icon(Icons.upload_file),
+              label: const Text('SUBIR LOGO PERSONALIZADO'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
+            ),
+          ],
+        );
+      case TicketBlockType.qr:
+        return _buildDesignerField('Contenido del QR (URL/Pago)', block.data['content'], (val) => setState(() => block.data['content'] = val));
+      default:
+        return const Text('Este bloque no requiere configuración adicional', style: TextStyle(color: Colors.white24, fontSize: 11));
+    }
   }
 
   Widget _buildDesignerField(String label, String initialValue, Function(String) onChanged) {
