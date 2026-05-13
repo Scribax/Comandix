@@ -155,6 +155,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Widget _buildOrderCard(BuildContext context, OrderModel order, TableModel table) {
+    final activeItems = order.items.where((item) => !item.isVoided).toList();
+    final activeTotal = activeItems.fold(0.0, (sum, item) => sum + (item.unitPriceSnapshot * item.quantity));
+    
     final statusColor = _getStatusColor(order.status);
     final now = DateTime.now();
     final elapsed = now.difference(order.createdAt);
@@ -240,21 +243,34 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             );
                           }
                           final item = order.items[i];
+                          final bool isVoided = item.isVoided;
                           return Row(
                             children: [
                               Text(
                                 '${item.quantity}x', 
-                                style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12),
+                                style: TextStyle(
+                                  color: isVoided ? Colors.red.withOpacity(0.3) : statusColor, 
+                                  fontWeight: FontWeight.bold, 
+                                  fontSize: 12,
+                                  decoration: isVoided ? TextDecoration.lineThrough : null,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   item.productNameSnapshot, 
-                                  style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                                  style: TextStyle(
+                                    color: isVoided ? Colors.white24 : Colors.white70, 
+                                    fontSize: 13, 
+                                    fontWeight: isVoided ? FontWeight.normal : FontWeight.w500,
+                                    decoration: isVoided ? TextDecoration.lineThrough : null,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (isVoided)
+                                const Icon(Icons.block, color: Colors.redAccent, size: 10),
                             ],
                           );
                         },
@@ -283,7 +299,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         Row(
                           children: [
                             Text(
-                              '\$${order.total.toStringAsFixed(0)}',
+                              '\$${activeTotal.toStringAsFixed(0)}',
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
                             ),
                             const SizedBox(width: 12),

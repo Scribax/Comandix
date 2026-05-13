@@ -69,3 +69,53 @@ class PosItemNoteUpdated extends PosEvent {
   final String note;
   PosItemNoteUpdated(this.tableId, this.index, this.note);
 }
+
+// Menu Management Events
+class PosCategoryCreated extends PosEvent {
+  final Map<String, dynamic> data;
+  PosCategoryCreated(this.data);
+}
+
+class PosCategoryUpdated extends PosEvent {
+  final String id;
+  final Map<String, dynamic> data;
+  PosCategoryUpdated(this.id, this.data);
+}
+
+class PosCategoryDeleted extends PosEvent {
+  final String id;
+  PosCategoryDeleted(this.id);
+}
+
+class PosProductCreated extends PosEvent {
+  final Map<String, dynamic> data;
+  PosProductCreated(this.data);
+}
+
+class PosProductUpdated extends PosEvent {
+  final String id;
+  final Map<String, dynamic> data;
+  PosProductUpdated(this.id, this.data);
+}
+
+class PosProductDeleted extends PosEvent {
+  final String id;
+  PosProductDeleted(this.id);
+}
+
+// Production Sector Events
+class PosProductionSectorCreated extends PosEvent {
+  final Map<String, dynamic> data;
+  PosProductionSectorCreated(this.data);
+}
+
+class PosProductionSectorUpdated extends PosEvent {
+  final String id;
+  final Map<String, dynamic> data;
+  PosProductionSectorUpdated(this.id, this.data);
+}
+
+class PosProductionSectorDeleted extends PosEvent {
+  final String id;
+  PosProductionSectorDeleted(this.id);
+}

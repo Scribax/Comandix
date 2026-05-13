@@ -4,6 +4,7 @@ import '../../shared/models/table_model.dart';
 import '../../shared/models/category_model.dart';
 import '../../shared/models/product_model.dart';
 import '../../shared/models/order_model.dart';
+import '../../shared/models/production_sector_model.dart';
 
 class PosRepository {
   final ApiClient apiClient;
@@ -83,5 +84,55 @@ class PosRepository {
   Future<Map<String, dynamic>> getDashboardStats() async {
     final response = await apiClient.dio.get('/orders/stats/dashboard');
     return response.data as Map<String, dynamic>;
+  }
+
+  // Categories
+  Future<CategoryModel> createCategory(Map<String, dynamic> data) async {
+    final response = await apiClient.dio.post('/categories', data: data);
+    return CategoryModel.fromJson(response.data);
+  }
+
+  Future<CategoryModel> updateCategory(String id, Map<String, dynamic> data) async {
+    final response = await apiClient.dio.put('/categories/$id', data: data);
+    return CategoryModel.fromJson(response.data);
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await apiClient.dio.delete('/categories/$id');
+  }
+
+  // Products
+  Future<ProductModel> createProduct(Map<String, dynamic> data) async {
+    final response = await apiClient.dio.post('/products', data: data);
+    return ProductModel.fromJson(response.data);
+  }
+
+  Future<ProductModel> updateProduct(String id, Map<String, dynamic> data) async {
+    final response = await apiClient.dio.put('/products/$id', data: data);
+    return ProductModel.fromJson(response.data);
+  }
+
+  Future<void> deleteProduct(String id) async {
+    await apiClient.dio.delete('/products/$id');
+  }
+
+  // Production Sectors
+  Future<List<ProductionSectorModel>> getProductionSectors() async {
+    final response = await apiClient.dio.get('/production-sectors');
+    return (response.data as List).map((json) => ProductionSectorModel.fromJson(json)).toList();
+  }
+
+  Future<ProductionSectorModel> createProductionSector(Map<String, dynamic> data) async {
+    final response = await apiClient.dio.post('/production-sectors', data: data);
+    return ProductionSectorModel.fromJson(response.data);
+  }
+
+  Future<ProductionSectorModel> updateProductionSector(String id, Map<String, dynamic> data) async {
+    final response = await apiClient.dio.put('/production-sectors/$id', data: data);
+    return ProductionSectorModel.fromJson(response.data);
+  }
+
+  Future<void> deleteProductionSector(String id) async {
+    await apiClient.dio.delete('/production-sectors/$id');
   }
 }

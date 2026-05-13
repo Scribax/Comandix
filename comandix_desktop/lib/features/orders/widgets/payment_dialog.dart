@@ -35,7 +35,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final double total = widget.order.total;
+    final activeItems = widget.order.items.where((item) => !item.isVoided).toList();
+    final double total = activeItems.fold(0.0, (sum, item) => sum + (item.unitPriceSnapshot * item.quantity));
     final double currentTotal = total / splitPeople;
 
     return BackdropFilter(

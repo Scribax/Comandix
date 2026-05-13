@@ -184,7 +184,7 @@ export class OrdersService {
   async voidItem(restaurantId: string, orderId: string, itemId: string) {
     const order = await this.ordersRepo.findOne({
       where: { id: orderId, restaurantId },
-      relations: ['items'],
+      relations: ['items', 'items.product', 'table', 'user'],
     });
     if (!order) throw new NotFoundException('Pedido no encontrado');
 
@@ -198,9 +198,8 @@ export class OrdersService {
 
     // Si ya estaba enviado a la cocina, imprimimos ticket de anulación
     if (order.status !== OrderStatus.DRAFT) {
-      // NOTE: Here we could dispatch an event for PrinterService to print a VOID ticket
-      // For example: this.printersService.printVoidTicket(restaurantId, order, item);
-      console.log(`[VOID TICKET] Imprimiendo anulación de ${item.quantity}x ${item.productNameSnapshot} para la Mesa ${order.tableId}`);
+      await this.printersService.printVoidTicket(restaurantId, order, item);
+      this.logger.log(`[VOID TICKET] Enviada anulación de ${item.quantity}x ${item.productNameSnapshot} para la Mesa ${order.tableId}`);
     }
 
     await this.updateOrderTotals(restaurantId, order.id);

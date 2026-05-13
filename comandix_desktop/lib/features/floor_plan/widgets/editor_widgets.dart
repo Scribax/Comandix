@@ -91,10 +91,24 @@ class EditorToolbar extends StatelessWidget {
   void _showIconPicker(BuildContext context, Function(String) onSelected) {
     final icons = {
       'wc': Icons.wc,
+      'male': Icons.male,
+      'female': Icons.female,
       'kitchen': Icons.soup_kitchen,
-      'exit': Icons.exit_to_app,
-      'stairs': Icons.stairs,
+      'restaurant': Icons.restaurant,
+      'coffee': Icons.coffee,
+      'pizza': Icons.local_pizza,
+      'cake': Icons.cake,
       'bar': Icons.local_bar,
+      'exit': Icons.exit_to_app,
+      'emergency': Icons.emergency,
+      'danger': Icons.warning,
+      'fire': Icons.fire_extinguisher,
+      'wifi': Icons.wifi,
+      'medical': Icons.medical_services,
+      'parking': Icons.local_parking,
+      'no_smoking': Icons.smoke_free,
+      'delivery': Icons.delivery_dining,
+      'stairs': Icons.stairs,
       'dj': Icons.album,
       'pool': Icons.pool,
       'entrance': Icons.login,
@@ -110,24 +124,27 @@ class EditorToolbar extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           border: const Border(top: BorderSide(color: AppColors.glassBorder)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Añadir Elemento Decorativo', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 5,
-              children: icons.entries.map((e) => IconButton(
-                icon: Icon(e.value, color: Colors.white70, size: 32),
-                onPressed: () {
-                  onSelected(e.key);
-                  Navigator.pop(context);
-                },
-              )).toList(),
-            ),
-            const SizedBox(height: 24),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Añadir Elemento Decorativo', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 5,
+                children: icons.entries.map((e) => IconButton(
+                  icon: Icon(e.value, color: Colors.white70, size: 32),
+                  onPressed: () {
+                    onSelected(e.key);
+                    Navigator.pop(context);
+                  },
+                )).toList(),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

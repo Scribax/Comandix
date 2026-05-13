@@ -26,6 +26,15 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     on<PosItemVoided>(_onItemVoided);
     on<PosSectorCreated>(_onSectorCreated);
     on<PosItemNoteUpdated>(_onItemNoteUpdated);
+    on<PosCategoryCreated>(_onCategoryCreated);
+    on<PosCategoryUpdated>(_onCategoryUpdated);
+    on<PosCategoryDeleted>(_onCategoryDeleted);
+    on<PosProductCreated>(_onProductCreated);
+    on<PosProductUpdated>(_onProductUpdated);
+    on<PosProductDeleted>(_onProductDeleted);
+    on<PosProductionSectorCreated>(_onProductionSectorCreated);
+    on<PosProductionSectorUpdated>(_onProductionSectorUpdated);
+    on<PosProductionSectorDeleted>(_onProductionSectorDeleted);
 
     // Listen to real-time events
     _orderUpdatedSubscription = socketClient.onOrderUpdated.listen((_) {
@@ -79,6 +88,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
       final tables = await repository.getTables();
       final categories = await repository.getCategories();
       final products = await repository.getProducts();
+      final productionSectors = await repository.getProductionSectors();
       final activeOrders = await repository.getActiveOrders();
       final dashboardStats = await repository.getDashboardStats();
 
@@ -87,6 +97,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         tables: tables,
         categories: categories,
         products: products,
+        productionSectors: productionSectors,
         activeOrders: activeOrders,
         selectedSectorId: currentSectorId ?? (sectors.isNotEmpty ? sectors.first.id : null),
         selectedCategoryId: currentCategoryId ?? (categories.isNotEmpty ? categories.first.id : null),
@@ -242,7 +253,9 @@ class PosBloc extends Bloc<PosEvent, PosState> {
           draftItems: updatedDrafts,
         ));
       } catch (e) {
-        emit(currentState);
+        emit(PosError('Error al enviar comanda: ${e.toString()}'));
+        // Return to loaded state after showing error
+        add(PosDataLoaded());
       }
     }
   }
@@ -300,6 +313,87 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         currentDrafts[event.tableId] = tableDraft;
         emit(currentState.copyWith(draftItems: currentDrafts));
       }
+    }
+  }
+
+  Future<void> _onCategoryCreated(PosCategoryCreated event, Emitter<PosState> emit) async {
+    try {
+      await repository.createCategory(event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onCategoryUpdated(PosCategoryUpdated event, Emitter<PosState> emit) async {
+    try {
+      await repository.updateCategory(event.id, event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onCategoryDeleted(PosCategoryDeleted event, Emitter<PosState> emit) async {
+    try {
+      await repository.deleteCategory(event.id);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onProductCreated(PosProductCreated event, Emitter<PosState> emit) async {
+    try {
+      await repository.createProduct(event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onProductUpdated(PosProductUpdated event, Emitter<PosState> emit) async {
+    try {
+      await repository.updateProduct(event.id, event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onProductDeleted(PosProductDeleted event, Emitter<PosState> emit) async {
+    try {
+      await repository.deleteProduct(event.id);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onProductionSectorCreated(PosProductionSectorCreated event, Emitter<PosState> emit) async {
+    try {
+      await repository.createProductionSector(event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onProductionSectorUpdated(PosProductionSectorUpdated event, Emitter<PosState> emit) async {
+    try {
+      await repository.updateProductionSector(event.id, event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onProductionSectorDeleted(PosProductionSectorDeleted event, Emitter<PosState> emit) async {
+    try {
+      await repository.deleteProductionSector(event.id);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
     }
   }
 }

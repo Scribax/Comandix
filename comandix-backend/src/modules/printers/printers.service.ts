@@ -72,6 +72,55 @@ export class PrintersService {
     }
   }
 
+  async printVoidTicket(restaurantId: string, order: Order, item: OrderItem) {
+    // 1. Load active routes
+    const routes = await this.routesRepo.find({
+      where: { restaurantId },
+      relations: ['printer'],
+    });
+
+    // 2. Find printer for this item's category
+    const catId = (item.product as any)?.categoryId;
+    if (!catId) return;
+
+    const route = routes.find((r) => r.categoryId === catId && r.printer?.isActive);
+    if (!route || !route.printer) return;
+
+    const printer = route.printer;
+
+    // 3. Build VOID ticket
+    const time = new Date().toTimeString().substring(0, 5);
+    const ticketText = [
+      '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+      '        !!! ANULACION !!!       ',
+      '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+      `MESA  : ${(order.table as any)?.name ?? order.tableId}`,
+      `MOZO  : ${(order.user as any)?.name ?? 'N/A'}`,
+      `HORA  : ${time}`,
+      '--------------------------------',
+      `PRODUCTO:`,
+      `${item.quantity}x ${item.productNameSnapshot}`,
+      '--------------------------------',
+      '   FAVOR DETENER PREPARACION    ',
+      '--------------------------------',
+    ].join('\n');
+
+    // 4. Dispatch job
+    const printJob = this.jobsRepo.create({
+      restaurantId,
+      printerId: printer.id,
+      orderId: order.id,
+      status: 'pending',
+    });
+    await this.jobsRepo.save(printJob);
+
+    if (printer.type === 'INTERNET') {
+      await this.printerQueue.add('print_internet', { printer, ticketText, jobId: printJob.id });
+    } else {
+      this.logger.log(`[LAN-VOID] Void job for ${printer.name} queued.`);
+    }
+  }
+
   private buildTicket(order: Order, items: OrderItem[]): string {
     const time = new Date().toTimeString().substring(0, 5);
     const lines = [
