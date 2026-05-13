@@ -808,7 +808,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final tokenController = TextEditingController(text: printer?.token);
     String selectedType = printer?.type ?? 'LAN';
     String? selectedSectorId = printer?.productionSectorId;
-    List<String> discoveredIps = [];
+    List<DiscoveredPrinter> discoveredPrinters = [];
     bool isScanning = false;
 
     showDialog(
@@ -826,12 +826,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   onPressed: isScanning ? null : () async {
                     setDialogState(() {
                       isScanning = true;
-                      discoveredIps = [];
+                      discoveredPrinters = [];
                     });
                     
-                    await for (final ip in PrinterScanner.discoverPrinters()) {
+                    await for (final p in PrinterScanner.discoverPrinters()) {
                       setDialogState(() {
-                        if (!discoveredIps.contains(ip)) discoveredIps.add(ip);
+                        if (!discoveredPrinters.any((dp) => dp.name == p.name)) {
+                          discoveredPrinters.add(p);
+                        }
                       });
                     }
                     
@@ -853,7 +855,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (isScanning || discoveredIps.isNotEmpty || (!isScanning && discoveredIps.isEmpty && ipController.text.isEmpty)) ...[
+                  if (isScanning || discoveredPrinters.isNotEmpty || (!isScanning && discoveredPrinters.isEmpty && ipController.text.isEmpty)) ...[
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text('BÚSQUEDA AUTOMÁTICA', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
@@ -861,7 +863,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(isScanning || discoveredPrinters.isEmpty ? 24 : 8),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.02),
                         borderRadius: BorderRadius.circular(24),
@@ -875,38 +877,53 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2), duration: 1.seconds, curve: Curves.easeInOut)
                                     .rotate(begin: 0, end: 1, duration: 2.seconds),
                                 const SizedBox(height: 16),
-                                const Text('Escaneando tu red local...', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                const Text('Buscando dispositivos...', style: TextStyle(color: Colors.white70, fontSize: 13)),
                                 const SizedBox(height: 4),
-                                const Text('Esto puede tardar unos segundos', style: TextStyle(color: Colors.white24, fontSize: 11)),
+                                const Text('Escaneando Red y Windows', style: TextStyle(color: Colors.white24, fontSize: 11)),
                               ],
                             )
-                          : discoveredIps.isEmpty
+                          : discoveredPrinters.isEmpty
                               ? Column(
                                   children: [
                                     Icon(Icons.search_off_rounded, color: Colors.white.withOpacity(0.1), size: 48),
                                     const SizedBox(height: 16),
-                                    const Text('No se detectaron impresoras', style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    const Text('No se detectaron dispositivos', style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
-                                    const Text('Puedes configurar la IP manualmente abajo', style: TextStyle(color: Colors.white24, fontSize: 11)),
+                                    const Text('Puedes configurarla manualmente abajo', style: TextStyle(color: Colors.white24, fontSize: 11)),
                                   ],
                                 ).animate().fadeIn()
-                              : Column(
-                                  children: discoveredIps.map((ip) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: ListTile(
-                                      tileColor: Colors.white.withOpacity(0.03),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      leading: const Icon(Icons.print_rounded, color: AppColors.accent),
-                                      title: Text(ip, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                      trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent),
-                                      onTap: () {
-                                        setDialogState(() {
-                                          ipController.text = ip;
-                                          if (nameController.text.isEmpty) nameController.text = 'Impresora ${ip.split('.').last}';
-                                        });
-                                      },
-                                    ),
-                                  ).animate().slideX(begin: 0.1, duration: 300.ms).fadeIn()).toList(),
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: discoveredPrinters.length,
+                                  itemBuilder: (context, idx) {
+                                    final p = discoveredPrinters[idx];
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: ListTile(
+                                        dense: true,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        tileColor: Colors.white.withOpacity(0.03),
+                                        leading: Icon(
+                                          p.type == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded,
+                                          color: AppColors.accent,
+                                          size: 18,
+                                        ),
+                                        title: Text(p.name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                        subtitle: Text(p.type == 'SYSTEM' ? 'Impresora de Windows' : 'IP: ${p.ip}', style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                                        trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent, size: 18),
+                                        onTap: () {
+                                          setDialogState(() {
+                                            nameController.text = p.name;
+                                            selectedType = p.type;
+                                            if (p.type == 'LAN') {
+                                              ipController.text = p.ip!;
+                                            }
+                                          });
+                                        },
+                                      ),
+                                    ).animate().slideX(begin: 0.1, duration: 300.ms).fadeIn();
+                                  },
                                 ),
                     ),
                     const SizedBox(height: 32),
@@ -945,7 +962,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   Row(
                     children: [
                       _buildTypeToggle('LAN', 'Red Local', Icons.lan_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
+                      _buildTypeToggle('SYSTEM', 'Windows', Icons.desktop_windows_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
+                      const SizedBox(width: 8),
                       _buildTypeToggle('INTERNET', 'Cloud', Icons.cloud_done_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
                     ],
                   ),

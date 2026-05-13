@@ -9,10 +9,12 @@ class SocketClient {
   final _kitchenNewOrderController = StreamController<Map<String, dynamic>>.broadcast();
   final _tableStatusController = StreamController<Map<String, dynamic>>.broadcast();
   final _orderUpdatedController = StreamController<Map<String, dynamic>>.broadcast();
+  final _printJobController = StreamController<Map<String, dynamic>>.broadcast();
 
   Stream<Map<String, dynamic>> get onKitchenNewOrder => _kitchenNewOrderController.stream;
   Stream<Map<String, dynamic>> get onTableStatusChanged => _tableStatusController.stream;
   Stream<Map<String, dynamic>> get onOrderUpdated => _orderUpdatedController.stream;
+  Stream<Map<String, dynamic>> get onPrintJob => _printJobController.stream;
 
   SocketClient({required this.url});
 
@@ -43,6 +45,10 @@ class SocketClient {
 
     _socket.on('order:updated', (data) {
       _orderUpdatedController.add(Map<String, dynamic>.from(data));
+    });
+
+    _socket.on('print:job', (data) {
+      _printJobController.add(Map<String, dynamic>.from(data));
     });
   }
 

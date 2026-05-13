@@ -45,4 +45,10 @@ export class OrdersGateway {
       .to(`restaurant:${restaurantId}`)
       .emit('order:updated', order);
   }
+
+  emitPrintJob(restaurantId: string, jobData: any) {
+    this.server
+      .to(`restaurant:${restaurantId}`)
+      .emit('print:job', jobData);
+  }
 }

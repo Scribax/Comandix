@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { OrdersGateway } from '../orders/orders.gateway';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
@@ -21,6 +22,8 @@ export class PrintersService {
     @InjectRepository(PrintJob)
     private readonly jobsRepo: Repository<PrintJob>,
     @InjectQueue('printer_queue') private readonly printerQueue: Queue,
+    @Inject(forwardRef(() => OrdersGateway))
+    private readonly ordersGateway: OrdersGateway,
   ) {}
 
   async findAll(restaurantId: string) {
@@ -62,7 +65,12 @@ export class PrintersService {
     if (printer.type === 'INTERNET') {
       await this.printerQueue.add('print_internet', { printer, ticketText });
     } else {
-      this.logger.log(`[LAN-TEST] Test print job for ${printer.name} queued.`);
+      this.ordersGateway.emitPrintJob(restaurantId, {
+        printer,
+        ticketText,
+        jobId: 'test-' + Date.now(),
+      });
+      this.logger.log(`[LAN/SYSTEM] Test print job for ${printer.name} emitted via Socket.`);
     }
   }
 
@@ -112,8 +120,13 @@ export class PrintersService {
         await this.printerQueue.add('print_internet', { printer, ticketText: ticket, jobId: printJob.id });
         this.logger.log(`Internet print job queued for ${printer.name}`);
       } else {
-        // LAN: handled by the Desktop App locally
-        this.logger.log(`[LAN] Print job for ${printer.name} queued for local dispatch.`);
+        // LAN or SYSTEM: Emit via socket for the Desktop app to handle
+        this.ordersGateway.emitPrintJob(restaurantId, {
+          printer,
+          ticketText: ticket,
+          jobId: printJob.id,
+        });
+        this.logger.log(`[${printer.type}] Print job for ${printer.name} emitted via Socket.`);
       }
     }
   }
@@ -163,7 +176,12 @@ export class PrintersService {
     if (printer.type === 'INTERNET') {
       await this.printerQueue.add('print_internet', { printer, ticketText, jobId: printJob.id });
     } else {
-      this.logger.log(`[LAN-VOID] Void job for ${printer.name} queued.`);
+      this.ordersGateway.emitPrintJob(restaurantId, {
+        printer,
+        ticketText,
+        jobId: printJob.id,
+      });
+      this.logger.log(`[LAN/SYSTEM-VOID] Void job for ${printer.name} emitted via Socket.`);
     }
   }
 

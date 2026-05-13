@@ -1,7 +1,7 @@
 class PrinterModel {
   final String id;
   final String name;
-  final String type; // 'LAN' | 'INTERNET'
+  final String type; // 'LAN' | 'INTERNET' | 'SYSTEM'
   final String? ipAddress;
   final int? port;
   final String? endpointUrl;

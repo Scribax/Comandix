@@ -5,12 +5,15 @@ import '../../../core/network/socket_client.dart';
 import '../../../shared/models/order_item_model.dart';
 import 'pos_event.dart';
 import 'pos_state.dart';
+import '../../../shared/models/printer_model.dart';
+import '../../../core/utils/print_dispatcher.dart';
 
 class PosBloc extends Bloc<PosEvent, PosState> {
   final PosRepository repository;
   final SocketClient socketClient;
   late StreamSubscription _orderUpdatedSubscription;
   late StreamSubscription _tableStatusSubscription;
+  StreamSubscription? _printJobSubscription;
 
   PosBloc({required this.repository, required this.socketClient}) : super(PosInitial()) {
     on<PosDataLoaded>(_onLoadData);
@@ -50,12 +53,27 @@ class PosBloc extends Bloc<PosEvent, PosState> {
       // Just reload the data to sync tables
       add(PosDataLoaded());
     });
+
+    _printJobSubscription = socketClient.onPrintJob.listen((data) {
+      _handleRemotePrintJob(data);
+    });
+  }
+
+  void _handleRemotePrintJob(Map<String, dynamic> data) async {
+    try {
+      final printer = PrinterModel.fromJson(data['printer']);
+      final ticketText = data['ticketText'] as String;
+      await PrintDispatcher.dispatch(printer, ticketText);
+    } catch (e) {
+      print('[PosBloc] Error handling remote print job: $e');
+    }
   }
 
   @override
   Future<void> close() {
-    _orderUpdatedSubscription.cancel();
-    _tableStatusSubscription.cancel();
+    _orderUpdatedSubscription?.cancel();
+    _tableStatusSubscription?.cancel();
+    _printJobSubscription?.cancel();
     return super.close();
   }
 

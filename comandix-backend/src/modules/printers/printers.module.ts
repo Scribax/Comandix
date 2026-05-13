@@ -9,11 +9,15 @@ import { PrintersService } from './printers.service';
 import { PrinterProcessor } from './printer.processor';
 import { PrintersController } from './printers.controller';
 
+import { forwardRef } from '@nestjs/common';
+import { OrdersModule } from '../orders/orders.module';
+
 @Module({
   controllers: [PrintersController],
   imports: [
     TypeOrmModule.forFeature([Printer, PrinterRoute, PrintJob]),
     HttpModule,
+    forwardRef(() => OrdersModule),
     BullModule.registerQueue({
       name: 'printer_queue',
       defaultJobOptions: {

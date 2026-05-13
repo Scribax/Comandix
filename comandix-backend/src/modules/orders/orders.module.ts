@@ -15,5 +15,6 @@ import { PrintersModule } from '../printers/printers.module';
   ],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersGateway],
+  exports: [OrdersService, OrdersGateway],
 })
 export class OrdersModule {}

@@ -4,7 +4,7 @@ import {
 import { Restaurant } from '../../restaurants/entities/restaurant.entity';
 import { PrinterRoute } from './printer-route.entity';
 
-export type PrinterType = 'LAN' | 'INTERNET';
+export type PrinterType = 'LAN' | 'INTERNET' | 'SYSTEM';
 
 @Entity('printers')
 export class Printer {
