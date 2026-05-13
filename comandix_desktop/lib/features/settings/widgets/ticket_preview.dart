@@ -29,9 +29,11 @@ class TicketBlock {
 
 class TicketConfigModel {
   final List<TicketBlock> blocks;
+  final double paperWidth; // in mm
 
   TicketConfigModel({
     List<TicketBlock>? blocks,
+    this.paperWidth = 58.0,
   }) : blocks = blocks ?? _defaultBlocks();
 
   static List<TicketBlock> _defaultBlocks() => [
@@ -49,8 +51,11 @@ class TicketConfigModel {
     TicketBlock(id: 'ftr', type: TicketBlockType.footer, data: {'message': '¡Gracias por su visita!'}),
   ];
 
-  TicketConfigModel copyWith({List<TicketBlock>? blocks}) {
-    return TicketConfigModel(blocks: blocks ?? this.blocks);
+  TicketConfigModel copyWith({List<TicketBlock>? blocks, double? paperWidth}) {
+    return TicketConfigModel(
+      blocks: blocks ?? this.blocks,
+      paperWidth: paperWidth ?? this.paperWidth,
+    );
   }
 
   String generateRawTicket() {
@@ -96,9 +101,15 @@ class TicketPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Map mm to screen pixels (scaled for preview)
+    double displayWidth = config.paperWidth * 4.0; // multiplier to make it look good on screen
+    if (config.paperWidth > 100) displayWidth = 400; // Cap A4 for preview
+    
     return Center(
-      child: Container(
-        width: 300,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+        width: displayWidth,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(4),

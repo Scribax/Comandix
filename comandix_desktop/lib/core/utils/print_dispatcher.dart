@@ -5,24 +5,37 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../shared/models/printer_model.dart';
 
 class PrintDispatcher {
-  static Future<void> dispatch(PrinterModel printer, String ticketText) async {
+  static Future<void> dispatch(PrinterModel printer, String ticketText, {double paperWidth = 58.0}) async {
     if (printer.type == 'SYSTEM') {
-      await _printToSystem(printer.name, ticketText);
+      await _printToSystem(printer.name, ticketText, paperWidth);
     } else if (printer.type == 'LAN') {
       await _printToLan(printer.ipAddress!, printer.port ?? 9100, ticketText);
     }
   }
 
-  static Future<void> _printToSystem(String printerName, String text) async {
+  static Future<void> _printToSystem(String printerName, String text, double width) async {
     final pdf = pw.Document();
     
+    PdfPageFormat format;
+    if (width > 200) {
+      format = PdfPageFormat.a4;
+    } else {
+      format = PdfPageFormat(width * PdfPageFormat.mm, double.infinity, marginAll: 2 * PdfPageFormat.mm);
+    }
+
     pdf.addPage(
       pw.Page(
-        pageFormat: const PdfPageFormat(58 * PdfPageFormat.mm, double.infinity, marginAll: 2 * PdfPageFormat.mm),
+        pageFormat: format,
         build: (pw.Context context) {
-          return pw.Text(
-            text,
-            style: const pw.TextStyle(fontSize: 8, fontFallback: []),
+          return pw.Padding(
+            padding: const pw.EdgeInsets.all(10),
+            child: pw.Text(
+              text,
+              style: pw.TextStyle(
+                fontSize: width > 200 ? 12 : 8, 
+                font: pw.Font.courier(),
+              ),
+            ),
           );
         },
       ),

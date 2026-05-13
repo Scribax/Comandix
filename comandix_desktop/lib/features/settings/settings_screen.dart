@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             return;
           }
           final rawText = _ticketConfig.generateRawTicket();
-          PrintDispatcher.dispatch(state.printers.first, rawText);
+          PrintDispatcher.dispatch(state.printers.first, rawText, paperWidth: _ticketConfig.paperWidth);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Impresión de prueba enviada a: ${state.printers.first.name}')),
           );
@@ -1151,7 +1151,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           child: Column(
             children: [
               const Text('VISTA PREVIA REAL', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              _buildPaperSizeSelector(),
+              const SizedBox(height: 20),
               Expanded(
                 child: SingleChildScrollView(
                   child: TicketPreview(config: _ticketConfig),
@@ -1254,6 +1256,47 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       default:
         return const Text('Este bloque no requiere configuración adicional', style: TextStyle(color: Colors.white24, fontSize: 11));
     }
+  }
+
+  Widget _buildPaperSizeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSizeOption(58.0, '58mm'),
+          _buildSizeOption(80.0, '80mm'),
+          _buildSizeOption(210.0, 'A4'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSizeOption(double width, String label) {
+    bool isSelected = _ticketConfig.paperWidth == width;
+    return GestureDetector(
+      onTap: () => setState(() => _ticketConfig = _ticketConfig.copyWith(paperWidth: width)),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white38,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildDesignerField(String label, String initialValue, Function(String) onChanged, {String? key}) {
