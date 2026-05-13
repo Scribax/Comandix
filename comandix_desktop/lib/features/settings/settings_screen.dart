@@ -863,7 +863,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     const SizedBox(height: 16),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(isScanning || discoveredPrinters.isEmpty ? 24 : 8),
+                      padding: EdgeInsets.all(isScanning || discoveredPrinters.isEmpty ? 24 : 8),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.02),
                         borderRadius: BorderRadius.circular(24),
