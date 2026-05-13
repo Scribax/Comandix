@@ -35,29 +35,34 @@ class PosRepository {
     return (response.data as List).map((json) => OrderModel.fromJson(json)).toList();
   }
 
-  Future<OrderModel> openTable(String tableId, {String? terminalId}) async {
-    final response = await apiClient.dio.post('/orders/open', data: {
+  Future<OrderModel> createOrder(String tableId, {String? terminalId, List<Map<String, dynamic>>? items}) async {
+    final response = await apiClient.dio.post('/orders', data: {
       'tableId': tableId,
       'terminalId': terminalId,
-      'items': [],
+      'items': items ?? [],
     });
     return OrderModel.fromJson(response.data);
   }
 
   Future<OrderModel> addItemsToOrder(String orderId, List<Map<String, dynamic>> items) async {
-    final response = await apiClient.dio.post('/orders/$orderId/items', data: {
-      'items': items,
-    });
+    final response = await apiClient.dio.post('/orders/$orderId/items', data: items);
     return OrderModel.fromJson(response.data);
   }
 
-  Future<void> sendOrderToKitchen(String orderId) async {
-    await apiClient.dio.post('/orders/$orderId/send-to-kitchen');
+  Future<OrderModel> updateOrderStatus(String orderId, String status) async {
+    final response = await apiClient.dio.patch('/orders/$orderId/status', data: {
+      'status': status,
+    });
+    return OrderModel.fromJson(response.data);
   }
 
   Future<void> closeOrder(String orderId, String paymentMethod) async {
     await apiClient.dio.post('/orders/$orderId/close', data: {
       'paymentMethod': paymentMethod,
     });
+  }
+
+  Future<void> deleteOrder(String orderId) async {
+    await apiClient.dio.delete('/orders/$orderId');
   }
 }

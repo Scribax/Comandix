@@ -18,9 +18,27 @@ class PosOrderItemsAdded extends PosEvent {
   PosOrderItemsAdded(this.tableId, this.items);
 }
 
+class PosCategorySelected extends PosEvent {
+  final String categoryId;
+  PosCategorySelected(this.categoryId);
+}
+
+class PosProductTapped extends PosEvent {
+  final String productId;
+  final String tableId;
+  PosProductTapped(this.productId, this.tableId);
+}
+
+class PosDraftItemRemoved extends PosEvent {
+  final String tableId;
+  final int index;
+  PosDraftItemRemoved(this.tableId, this.index);
+}
+
 class PosOrderSentToKitchen extends PosEvent {
   final String orderId;
-  PosOrderSentToKitchen(this.orderId);
+  final String tableId;
+  PosOrderSentToKitchen(this.orderId, this.tableId);
 }
 
 class PosOrderClosed extends PosEvent {

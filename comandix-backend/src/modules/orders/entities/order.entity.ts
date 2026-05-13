@@ -7,7 +7,16 @@ import { Table } from '../../layout/tables/entities/table.entity';
 import { User } from '../../users/entities/user.entity';
 import { OrderItem } from './order-item.entity';
 
-export type OrderStatus = 'open' | 'closed' | 'canceled';
+export enum OrderStatus {
+  DRAFT = 'draft',
+  SENT_TO_KITCHEN = 'sent_to_kitchen',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  SERVED = 'served',
+  PAID = 'paid',
+  CANCELLED = 'cancelled',
+}
+
 export type PaymentMethod = 'cash' | 'card' | 'qr';
 
 @Entity('orders')
@@ -36,7 +45,11 @@ export class Order {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'varchar', default: 'open' })
+  @Column({
+    type: 'enum',
+    enum: OrderStatus,
+    default: OrderStatus.DRAFT,
+  })
   status: OrderStatus;
 
   @Column({ nullable: true })

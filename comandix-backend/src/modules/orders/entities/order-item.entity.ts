@@ -30,7 +30,7 @@ export class OrderItem {
   quantity: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  unitPrice: number;
+  unitPriceSnapshot: number;
 
   @Column({ nullable: true })
   notes: string;

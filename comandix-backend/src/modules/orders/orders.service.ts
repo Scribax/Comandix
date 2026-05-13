@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, In } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Table } from '../layout/tables/entities/table.entity';
@@ -19,7 +19,7 @@ export class CreateOrderDto {
 
   @IsOptional()
   @IsArray()
-  items: any[];
+  items?: AddItemDto[];
 }
 
 export class AddItemDto {
@@ -30,7 +30,7 @@ export class AddItemDto {
   quantity: number;
 
   @IsNumber()
-  unitPrice: number;
+  unitPriceSnapshot: number;
 
   @IsString()
   productNameSnapshot: string;
@@ -38,6 +38,11 @@ export class AddItemDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+export class UpdateOrderStatusDto {
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
 }
 
 export class CloseOrderDto {
@@ -58,31 +63,23 @@ export class OrdersService {
     private readonly gateway: OrdersGateway,
   ) {}
 
-  async openTable(restaurantId: string, userId: string, dto: CreateOrderDto) {
+  async openTable(restaurantId: string, waiterId: string, dto: CreateOrderDto) {
     const table = await this.tablesRepo.findOne({
       where: { id: dto.tableId, restaurantId },
     });
-    if (!table) throw new NotFoundException('Table not found');
+    if (!table) throw new NotFoundException('Mesa no encontrada');
 
     const order = this.ordersRepo.create({
       restaurantId,
       tableId: dto.tableId,
       terminalId: dto.terminalId,
-      userId,
-      status: 'open',
+      userId: waiterId, // Note: We keep userId in DB for now to avoid breaking too much, but it represents the waiter
+      status: OrderStatus.DRAFT,
     });
     const saved = await this.ordersRepo.save(order);
 
     if (dto.items && dto.items.length > 0) {
-      const orderItems = dto.items.map(item => this.itemsRepo.create({
-        orderId: saved.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        productNameSnapshot: item.productNameSnapshot,
-        notes: item.notes,
-      }));
-      await this.itemsRepo.save(orderItems);
+      await this.addItemsToOrder(restaurantId, saved.id, dto.items);
     }
 
     table.status = 'occupied';
@@ -94,32 +91,44 @@ export class OrdersService {
 
   async addItemsToOrder(restaurantId: string, orderId: string, items: AddItemDto[]) {
     const order = await this.ordersRepo.findOne({ where: { id: orderId, restaurantId } });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException('Pedido no encontrado');
 
     const orderItems = items.map(item => this.itemsRepo.create({
       orderId: order.id,
       productId: item.productId,
       quantity: item.quantity,
-      unitPrice: item.unitPrice,
+      unitPriceSnapshot: item.unitPriceSnapshot,
       productNameSnapshot: item.productNameSnapshot,
       notes: item.notes,
     }));
     
     await this.itemsRepo.save(orderItems);
+    await this.updateOrderTotals(restaurantId, order.id);
+    
     this.gateway.emitOrderUpdated(restaurantId, order);
     return this.getOrderById(restaurantId, order.id);
   }
 
-  async sendToKitchen(restaurantId: string, orderId: string) {
-    const order = await this.ordersRepo.findOne({
-      where: { id: orderId, restaurantId },
-      relations: ['items', 'items.product', 'items.product.category', 'table', 'user'],
-    });
-    if (!order) throw new NotFoundException('Order not found');
+  async updateStatus(restaurantId: string, orderId: string, status: OrderStatus) {
+    const order = await this.getOrderById(restaurantId, orderId);
+    
+    order.status = status;
+    
+    if (status === OrderStatus.SENT_TO_KITCHEN) {
+      await this.printersService.routeAndPrint(restaurantId, order);
+      this.gateway.emitNewKitchenOrder(restaurantId, order);
+    }
 
-    await this.printersService.routeAndPrint(restaurantId, order);
-    this.gateway.emitNewKitchenOrder(restaurantId, order);
-    return { message: 'Order sent to kitchen' };
+    if (status === OrderStatus.CANCELLED) {
+      const table = await this.tablesRepo.findOne({ where: { id: order.tableId } });
+      if (table) {
+        table.status = 'free';
+        await this.tablesRepo.save(table);
+        this.gateway.emitTableUpdate(restaurantId, table);
+      }
+    }
+
+    return this.ordersRepo.save(order);
   }
 
   async closeOrder(restaurantId: string, orderId: string, dto: CloseOrderDto) {
@@ -127,16 +136,12 @@ export class OrdersService {
       where: { id: orderId, restaurantId },
       relations: ['items'],
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException('Pedido no encontrado');
 
-    const subtotal = order.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-    const tax = subtotal * 0.21;
-
-    order.status = 'closed';
+    await this.updateOrderTotals(restaurantId, order.id);
+    
+    order.status = OrderStatus.PAID;
     order.paymentMethod = dto.paymentMethod;
-    order.subtotal = subtotal;
-    order.tax = tax;
-    order.total = subtotal + tax;
     order.closedAt = new Date();
     await this.ordersRepo.save(order);
 
@@ -150,16 +155,28 @@ export class OrdersService {
     return order;
   }
 
-  async getOpenOrders(restaurantId: string) {
-    try {
-      return await this.ordersRepo.find({
-        where: { restaurantId, status: 'open' },
-        relations: ['items', 'table', 'user'],
-        order: { createdAt: 'DESC' },
-      });
-    } catch (e) {
-      return { debug_error: e.message, stack: e.stack };
-    }
+  private async updateOrderTotals(restaurantId: string, orderId: string) {
+    const order = await this.ordersRepo.findOne({
+      where: { id: orderId, restaurantId },
+      relations: ['items'],
+    });
+    if (!order) return;
+
+    const subtotal = order.items.reduce((s, i) => s + Number(i.unitPriceSnapshot) * i.quantity, 0);
+    order.subtotal = subtotal;
+    order.total = subtotal; // For now total = subtotal, can add tax logic later if needed
+    await this.ordersRepo.save(order);
+  }
+
+  async getActiveOrders(restaurantId: string) {
+    return this.ordersRepo.find({
+      where: { 
+        restaurantId, 
+        status: Not(In([OrderStatus.PAID, OrderStatus.CANCELLED])) 
+      } as any,
+      relations: ['items', 'table', 'user'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async getOrderById(restaurantId: string, orderId: string) {
@@ -167,7 +184,23 @@ export class OrdersService {
       where: { id: orderId, restaurantId },
       relations: ['items', 'items.product', 'table', 'user'],
     });
-    if (!order) throw new NotFoundException('Order not found');
+    if (!order) throw new NotFoundException('Pedido no encontrado');
     return order;
   }
+
+  async deleteOrder(restaurantId: string, orderId: string) {
+    const order = await this.getOrderById(restaurantId, orderId);
+    
+    // Release table if active
+    if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.CANCELLED) {
+      const table = await this.tablesRepo.findOne({ where: { id: order.tableId } });
+      if (table) {
+        table.status = 'free';
+        await this.tablesRepo.save(table);
+      }
+    }
+    
+    return this.ordersRepo.remove(order);
+  }
+}
 }

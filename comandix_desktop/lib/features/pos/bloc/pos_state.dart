@@ -3,6 +3,7 @@ import '../../../shared/models/table_model.dart';
 import '../../../shared/models/category_model.dart';
 import '../../../shared/models/product_model.dart';
 import '../../../shared/models/order_model.dart';
+import '../../../shared/models/order_item_model.dart';
 
 abstract class PosState {}
 
@@ -17,7 +18,10 @@ class PosLoaded extends PosState {
   final List<ProductModel> products;
   final List<OrderModel> activeOrders;
   final String? selectedSectorId;
+  final String? selectedCategoryId;
   final TableModel? selectedTable;
+  // tableId -> list of items not yet sent to kitchen
+  final Map<String, List<OrderItemModel>> draftItems;
 
   PosLoaded({
     required this.sectors,
@@ -26,7 +30,9 @@ class PosLoaded extends PosState {
     required this.products,
     required this.activeOrders,
     this.selectedSectorId,
+    this.selectedCategoryId,
     this.selectedTable,
+    this.draftItems = const {},
   });
 
   PosLoaded copyWith({
@@ -36,7 +42,9 @@ class PosLoaded extends PosState {
     List<ProductModel>? products,
     List<OrderModel>? activeOrders,
     String? selectedSectorId,
+    String? selectedCategoryId,
     TableModel? selectedTable,
+    Map<String, List<OrderItemModel>>? draftItems,
     bool clearSelectedTable = false,
   }) {
     return PosLoaded(
@@ -46,7 +54,9 @@ class PosLoaded extends PosState {
       products: products ?? this.products,
       activeOrders: activeOrders ?? this.activeOrders,
       selectedSectorId: selectedSectorId ?? this.selectedSectorId,
+      selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
       selectedTable: clearSelectedTable ? null : (selectedTable ?? this.selectedTable),
+      draftItems: draftItems ?? this.draftItems,
     );
   }
 }
