@@ -7,21 +7,41 @@ import { Table } from '../layout/tables/entities/table.entity';
 import { PrintersService } from '../printers/printers.service';
 import { OrdersGateway } from './orders.gateway';
 
+import { IsString, IsUUID, IsOptional, IsArray, IsEnum, IsNumber } from 'class-validator';
+
 export class CreateOrderDto {
+  @IsUUID()
   tableId: string;
+
+  @IsOptional()
+  @IsString()
   terminalId?: string;
-  items: { productId: string; quantity: number; unitPrice: number; productNameSnapshot: string; notes?: string }[];
+
+  @IsOptional()
+  @IsArray()
+  items: any[];
 }
 
 export class AddItemDto {
+  @IsUUID()
   productId: string;
+
+  @IsNumber()
   quantity: number;
+
+  @IsNumber()
   unitPrice: number;
+
+  @IsString()
   productNameSnapshot: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 }
 
 export class CloseOrderDto {
+  @IsEnum(['cash', 'card', 'qr'])
   paymentMethod: 'cash' | 'card' | 'qr';
 }
 
