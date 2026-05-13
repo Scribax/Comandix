@@ -869,14 +869,39 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                               ],
                             )
                           : discoveredPrinters.isEmpty
-                              ? Column(
-                                  children: [
-                                    const Icon(Icons.search_rounded, color: Colors.white10, size: 48),
-                                    const SizedBox(height: 16),
-                                    const Text('Lista vacía', style: TextStyle(color: Colors.white24, fontSize: 13, fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 4),
-                                    const Text('Toca "BUSCAR" arriba', style: TextStyle(color: Colors.white12, fontSize: 11)),
-                                  ],
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.radar_rounded, color: Colors.white.withOpacity(0.05), size: 48),
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        width: 200,
+                                        height: 45,
+                                        child: ElevatedButton(
+                                          onPressed: () async {
+                                            setDialogState(() { isScanning = true; discoveredPrinters = []; });
+                                            await for (final p in PrinterScanner.discoverPrinters()) {
+                                              setDialogState(() {
+                                                if (!discoveredPrinters.any((dp) => dp.name == p.name)) discoveredPrinters.add(p);
+                                              });
+                                            }
+                                            setDialogState(() => isScanning = false);
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.accent.withOpacity(0.1),
+                                            foregroundColor: AppColors.accent,
+                                            side: BorderSide(color: AppColors.accent.withOpacity(0.3)),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            elevation: 0,
+                                          ),
+                                          child: const Text('BUSCAR AHORA', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1)),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      const Text('Detecta impresoras en red y locales', style: TextStyle(color: Colors.white10, fontSize: 10)),
+                                    ],
+                                  ),
                                 )
                               : SizedBox(
                                   height: 110,
