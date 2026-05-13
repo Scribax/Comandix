@@ -8,7 +8,12 @@ import 'bloc/pos_bloc.dart';
 import 'bloc/pos_event.dart';
 import 'bloc/pos_state.dart';
 import 'widgets/table_card.dart';
-import 'widgets/order_panel.dart';
+import '../orders/orders_screen.dart';
+import '../kitchen/kds_screen.dart';
+import '../delivery/delivery_screen.dart';
+import '../history/history_screen.dart';
+import '../settings/settings_screen.dart';
+import 'order_taking_screen.dart';
 
 class PosMainScreen extends StatefulWidget {
   const PosMainScreen({super.key});
@@ -28,26 +33,30 @@ class _PosMainScreenState extends State<PosMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A), // Tailwind Slate 900
-      body: Row(
-        children: [
-          _buildSidebar(context),
-          Expanded(
-            child: BlocBuilder<PosBloc, PosState>(
-              builder: (context, state) {
-                if (state is PosLoading || state is PosInitial) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                if (state is PosError) {
-                  return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
-                }
+      body: BlocBuilder<PosBloc, PosState>(
+        builder: (context, state) {
+          if (state is PosLoading || state is PosInitial) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (state is PosError) {
+            return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
+          }
 
-                if (state is PosLoaded) {
-                  final activeTables = state.tables.where((t) => t.sectorId == state.selectedSectorId).toList();
+          if (state is PosLoaded) {
+            final isKds = state.currentViewIndex == 2; 
 
-                  return Stack(
+            if (state.selectedTable != null) {
+              return OrderTakingScreen(table: state.selectedTable!);
+            }
+
+            return Row(
+              children: [
+                if (!isKds) _buildSidebar(context, state.currentViewIndex, state.activeOrders.length),
+                Expanded(
+                  child: Stack(
                     children: [
-                      // Soft background gradients
+                      // Soft background gradients for all screens
                       Positioned(
                         top: -100, right: -100,
                         child: _buildBlurryCircle(const Color(0xFF3B82F6), 400, 0.1),
@@ -57,95 +66,102 @@ class _PosMainScreenState extends State<PosMainScreen> {
                         child: _buildBlurryCircle(const Color(0xFF8B5CF6), 300, 0.1),
                       ),
                       
-                      SafeArea(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildTopBar(),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Sector Tabs
-                                    if (state.sectors.isNotEmpty)
-                                      SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: state.sectors.map((sector) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(right: 16),
-                                              child: InkWell(
-                                                onTap: () {
-                                                  context.read<PosBloc>().add(PosSectorSelected(sector.id));
-                                                },
-                                                borderRadius: BorderRadius.circular(100),
-                                                child: _buildSectorTab(sector.name, state.selectedSectorId == sector.id),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    const SizedBox(height: 24),
-                                    
-                                    // Tables Grid
-                                    Expanded(
-                                      child: activeTables.isEmpty 
-                                        ? Center(child: Text('No hay mesas en este sector.', style: TextStyle(color: Colors.white54)))
-                                        : GridView.builder(
-                                            padding: const EdgeInsets.only(bottom: 32),
-                                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                              crossAxisCount: 5,
-                                              crossAxisSpacing: 24,
-                                              mainAxisSpacing: 24,
-                                              childAspectRatio: 1.1,
-                                            ),
-                                            itemCount: activeTables.length,
-                                            itemBuilder: (context, index) {
-                                              final table = activeTables[index];
-                                              return TableCard(
-                                                table: table,
-                                                onTap: () {
-                                                  context.read<PosBloc>().add(PosTableSelected(table.id));
-                                                },
-                                              );
-                                            },
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Sliding Order Panel
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
-                        top: 0,
-                        bottom: 0,
-                        right: state.selectedTable != null ? 0 : -420,
-                        child: state.selectedTable != null 
-                          ? OrderPanel(
-                              table: state.selectedTable!,
-                              onClose: () {
-                                context.read<PosBloc>().add(PosSectorSelected(state.selectedSectorId!)); // Re-select sector to clear table selection cleanly
-                              },
-                            )
-                          : const SizedBox.shrink(),
+                      IndexedStack(
+                        index: state.currentViewIndex,
+                        children: [
+                          _buildSalonView(context, state),
+                          OrdersScreen(),
+                          KdsScreen(),
+                          DeliveryScreen(),
+                          HistoryScreen(),
+                          SettingsScreen(),
+                        ],
                       ),
                     ],
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-        ],
+                  ),
+                ),
+              ],
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
+    );
+  }
+
+  Widget _buildSalonView(BuildContext context, PosLoaded state) {
+    final activeTables = state.tables.where((t) => t.sectorId == state.selectedSectorId).toList();
+
+    return Stack(
+      children: [
+        SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTopBar(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Sector Tabs
+                      if (state.sectors.isNotEmpty)
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: state.sectors.map((sector) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 16),
+                                child: InkWell(
+                                  onTap: () {
+                                    context.read<PosBloc>().add(PosSectorSelected(sector.id));
+                                  },
+                                  borderRadius: BorderRadius.circular(100),
+                                  child: _buildSectorTab(sector.name, state.selectedSectorId == sector.id),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      
+                      // Tables Grid
+                      Expanded(
+                        child: activeTables.isEmpty 
+                          ? Center(child: Text('No hay mesas en este sector.', style: TextStyle(color: Colors.white54)))
+                          : GridView.builder(
+                              padding: const EdgeInsets.only(bottom: 32),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 5,
+                                crossAxisSpacing: 24,
+                                mainAxisSpacing: 24,
+                                childAspectRatio: 1.1,
+                              ),
+                              itemCount: activeTables.length,
+                              itemBuilder: (context, index) {
+                                final table = activeTables[index];
+                                final activeOrderIndex = state.activeOrders.indexWhere((o) => o.tableId == table.id);
+                                final activeOrder = activeOrderIndex >= 0 ? state.activeOrders[activeOrderIndex] : null;
+
+                                return TableCard(
+                                  table: table,
+                                  activeOrder: activeOrder,
+                                  onTap: () {
+                                    context.read<PosBloc>().add(PosTableSelected(table.id));
+                                  },
+                                );
+                              },
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -230,7 +246,7 @@ class _PosMainScreenState extends State<PosMainScreen> {
     );
   }
 
-  Widget _buildSidebar(BuildContext context) {
+  Widget _buildSidebar(BuildContext context, int currentIndex, int activeOrdersCount) {
     return Container(
       width: 260,
       decoration: const BoxDecoration(
@@ -271,15 +287,16 @@ class _PosMainScreenState extends State<PosMainScreen> {
           ),
           const SizedBox(height: 48),
           
-          _buildSidebarItem(Icons.grid_view_rounded, 'Salón', true),
-          _buildSidebarItem(Icons.receipt_long_rounded, 'Pedidos', false, badge: '3'),
-          _buildSidebarItem(Icons.delivery_dining, 'Delivery', false),
-          _buildSidebarItem(Icons.history_rounded, 'Historial', false),
+          _buildSidebarItem(context, 0, Icons.grid_view_rounded, 'Salón', currentIndex == 0),
+          _buildSidebarItem(context, 1, Icons.receipt_long_rounded, 'Pedidos', currentIndex == 1, badge: activeOrdersCount > 0 ? activeOrdersCount.toString() : null),
+          _buildSidebarItem(context, 2, Icons.soup_kitchen_rounded, 'Cocina', currentIndex == 2),
+          _buildSidebarItem(context, 3, Icons.delivery_dining, 'Delivery', currentIndex == 3),
+          _buildSidebarItem(context, 4, Icons.history_rounded, 'Historial', currentIndex == 4),
           
           const Spacer(),
           
           const Divider(color: const Color(0xFF1E293B), height: 1),
-          _buildSidebarItem(Icons.settings_outlined, 'Configuración', false),
+          _buildSidebarItem(context, 5, Icons.settings_outlined, 'Configuración', currentIndex == 5),
           
           // User profile at bottom
           Padding(
@@ -320,13 +337,15 @@ class _PosMainScreenState extends State<PosMainScreen> {
     );
   }
 
-  Widget _buildSidebarItem(IconData icon, String title, bool isSelected, {String? badge}) {
+  Widget _buildSidebarItem(BuildContext context, int index, IconData icon, String title, bool isSelected, {String? badge}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            context.read<PosBloc>().add(PosViewChanged(index));
+          },
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

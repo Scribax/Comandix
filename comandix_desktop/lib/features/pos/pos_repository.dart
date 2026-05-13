@@ -65,4 +65,9 @@ class PosRepository {
   Future<void> deleteOrder(String orderId) async {
     await apiClient.dio.delete('/orders/$orderId');
   }
+
+  Future<OrderModel> voidItem(String orderId, String itemId) async {
+    final response = await apiClient.dio.post('/orders/$orderId/items/$itemId/void');
+    return OrderModel.fromJson(response.data);
+  }
 }

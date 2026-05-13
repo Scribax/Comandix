@@ -10,6 +10,7 @@ class OrderItemModel {
   final String productNameSnapshot;
   final String? notes;
   final DateTime? sentToKitchenAt;
+  final bool isVoided;
 
   OrderItemModel({
     required this.id,
@@ -21,6 +22,7 @@ class OrderItemModel {
     required this.productNameSnapshot,
     this.notes,
     this.sentToKitchenAt,
+    this.isVoided = false,
   });
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class OrderItemModel {
       productNameSnapshot: json['productNameSnapshot'] as String,
       notes: json['notes'] as String?,
       sentToKitchenAt: json['sentToKitchenAt'] != null ? DateTime.parse(json['sentToKitchenAt']) : null,
+      isVoided: json['isVoided'] as bool? ?? false,
     );
   }
 }

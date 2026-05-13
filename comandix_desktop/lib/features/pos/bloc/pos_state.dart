@@ -22,6 +22,7 @@ class PosLoaded extends PosState {
   final TableModel? selectedTable;
   // tableId -> list of items not yet sent to kitchen
   final Map<String, List<OrderItemModel>> draftItems;
+  final int currentViewIndex;
 
   PosLoaded({
     required this.sectors,
@@ -33,6 +34,7 @@ class PosLoaded extends PosState {
     this.selectedCategoryId,
     this.selectedTable,
     this.draftItems = const {},
+    this.currentViewIndex = 0,
   });
 
   PosLoaded copyWith({
@@ -46,6 +48,7 @@ class PosLoaded extends PosState {
     TableModel? selectedTable,
     Map<String, List<OrderItemModel>>? draftItems,
     bool clearSelectedTable = false,
+    int? currentViewIndex,
   }) {
     return PosLoaded(
       sectors: sectors ?? this.sectors,
@@ -57,6 +60,7 @@ class PosLoaded extends PosState {
       selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
       selectedTable: clearSelectedTable ? null : (selectedTable ?? this.selectedTable),
       draftItems: draftItems ?? this.draftItems,
+      currentViewIndex: currentViewIndex ?? this.currentViewIndex,
     );
   }
 }

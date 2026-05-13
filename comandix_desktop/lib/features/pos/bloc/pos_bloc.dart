@@ -17,6 +17,28 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     on<PosOrderItemsAdded>(_onOrderItemsAdded);
     on<PosOrderSentToKitchen>(_onOrderSentToKitchen);
     on<PosOrderClosed>(_onOrderClosed);
+    on<PosViewChanged>(_onViewChanged);
+    on<PosItemVoided>(_onItemVoided);
+  }
+
+  void _onViewChanged(PosViewChanged event, Emitter<PosState> emit) {
+    if (state is PosLoaded) {
+      final currentState = state as PosLoaded;
+      emit(currentState.copyWith(currentViewIndex: event.viewIndex));
+    }
+  }
+
+  Future<void> _onItemVoided(PosItemVoided event, Emitter<PosState> emit) async {
+    if (state is PosLoaded) {
+      final currentState = state as PosLoaded;
+      try {
+        await repository.voidItem(event.orderId, event.itemId);
+        final updatedOrders = await repository.getActiveOrders();
+        emit(currentState.copyWith(activeOrders: updatedOrders));
+      } catch (e) {
+        emit(currentState);
+      }
+    }
   }
 
   Future<void> _onLoadData(PosDataLoaded event, Emitter<PosState> emit) async {

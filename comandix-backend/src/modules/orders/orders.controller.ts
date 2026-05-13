@@ -65,6 +65,16 @@ export class OrdersController {
     return this.ordersService.closeOrder(restaurantId, id, dto);
   }
 
+  @Post(':id/items/:itemId/void')
+  @Roles('admin', 'manager')
+  voidItem(
+    @TenantId() restaurantId: string,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.ordersService.voidItem(restaurantId, id, itemId);
+  }
+
   @Delete(':id')
   @Roles('admin', 'manager')
   remove(@TenantId() restaurantId: string, @Param('id') id: string) {

@@ -162,10 +162,42 @@ export class OrdersService {
     });
     if (!order) return;
 
-    const subtotal = order.items.reduce((s, i) => s + Number(i.unitPriceSnapshot) * i.quantity, 0);
+    // Subtotal ignores voided items
+    const subtotal = order.items
+      .filter(i => !i.isVoided)
+      .reduce((s, i) => s + Number(i.unitPriceSnapshot) * i.quantity, 0);
+      
     order.subtotal = subtotal;
     order.total = subtotal; // For now total = subtotal, can add tax logic later if needed
     await this.ordersRepo.save(order);
+  }
+
+  async voidItem(restaurantId: string, orderId: string, itemId: string) {
+    const order = await this.ordersRepo.findOne({
+      where: { id: orderId, restaurantId },
+      relations: ['items'],
+    });
+    if (!order) throw new NotFoundException('Pedido no encontrado');
+
+    const item = order.items.find(i => i.id === itemId);
+    if (!item) throw new NotFoundException('Ítem no encontrado en el pedido');
+    
+    if (item.isVoided) return order;
+
+    item.isVoided = true;
+    await this.itemsRepo.save(item);
+
+    // Si ya estaba enviado a la cocina, imprimimos ticket de anulación
+    if (order.status !== OrderStatus.DRAFT) {
+      // NOTE: Here we could dispatch an event for PrinterService to print a VOID ticket
+      // For example: this.printersService.printVoidTicket(restaurantId, order, item);
+      console.log(`[VOID TICKET] Imprimiendo anulación de ${item.quantity}x ${item.productNameSnapshot} para la Mesa ${order.tableId}`);
+    }
+
+    await this.updateOrderTotals(restaurantId, order.id);
+    this.gateway.emitOrderUpdated(restaurantId, order);
+    
+    return this.getOrderById(restaurantId, order.id);
   }
 
   async getActiveOrders(restaurantId: string) {

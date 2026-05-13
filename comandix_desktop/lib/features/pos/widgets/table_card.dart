@@ -1,12 +1,19 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../shared/models/table_model.dart';
+import '../../../shared/models/order_model.dart';
 
 class TableCard extends StatefulWidget {
   final TableModel table;
+  final OrderModel? activeOrder;
   final VoidCallback onTap;
 
-  const TableCard({super.key, required this.table, required this.onTap});
+  const TableCard({
+    super.key, 
+    required this.table, 
+    this.activeOrder,
+    required this.onTap
+  });
 
   @override
   State<TableCard> createState() => _TableCardState();
@@ -26,8 +33,24 @@ class _TableCardState extends State<TableCard> with SingleTickerProviderStateMix
     _pulseAnim = Tween<double>(begin: 1.0, end: 1.03).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
-    if (widget.table.status == 'waiting_payment') {
+    _checkPulse();
+  }
+  
+  @override
+  void didUpdateWidget(covariant TableCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeOrder?.status != widget.activeOrder?.status) {
+      _checkPulse();
+    }
+  }
+
+  void _checkPulse() {
+    // Pulse if the order is ready or waiting for payment
+    if (widget.activeOrder?.status == 'ready' || widget.table.status == 'waiting_payment') {
       _pulseCtrl.repeat(reverse: true);
+    } else {
+      _pulseCtrl.stop();
+      _pulseCtrl.reset();
     }
   }
 
@@ -37,9 +60,23 @@ class _TableCardState extends State<TableCard> with SingleTickerProviderStateMix
     super.dispose();
   }
 
+  String get _derivedStatus {
+    if (widget.activeOrder != null) {
+      final s = widget.activeOrder!.status;
+      if (s == 'draft') return 'draft';
+      if (s == 'sent_to_kitchen' || s == 'preparing') return 'kitchen';
+      if (s == 'ready') return 'ready';
+      return 'occupied';
+    }
+    return widget.table.status;
+  }
+
   Color get _statusColor {
-    switch (widget.table.status) {
+    switch (_derivedStatus) {
       case 'free': return const Color(0xFF10B981); // Emerald
+      case 'draft': return const Color(0xFF6366F1); // Indigo
+      case 'kitchen': return const Color(0xFFF59E0B); // Amber
+      case 'ready': return const Color(0xFF10B981); // Emerald (Ready to serve)
       case 'occupied': return const Color(0xFFEF4444); // Red
       case 'waiting_payment': return const Color(0xFFF59E0B); // Amber
       default: return Colors.grey;
@@ -47,8 +84,11 @@ class _TableCardState extends State<TableCard> with SingleTickerProviderStateMix
   }
 
   String get _statusLabel {
-    switch (widget.table.status) {
+    switch (_derivedStatus) {
       case 'free': return 'Libre';
+      case 'draft': return 'Atendiendo';
+      case 'kitchen': return 'En Cocina';
+      case 'ready': return '¡Listo!';
       case 'occupied': return 'Ocupada';
       case 'waiting_payment': return 'Por pagar';
       default: return 'Desconocido';

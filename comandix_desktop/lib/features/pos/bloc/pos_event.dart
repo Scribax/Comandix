@@ -46,3 +46,14 @@ class PosOrderClosed extends PosEvent {
   final String paymentMethod;
   PosOrderClosed(this.orderId, this.paymentMethod);
 }
+
+class PosViewChanged extends PosEvent {
+  final int viewIndex;
+  PosViewChanged(this.viewIndex);
+}
+
+class PosItemVoided extends PosEvent {
+  final String orderId;
+  final String itemId;
+  PosItemVoided(this.orderId, this.itemId);
+}

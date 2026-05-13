@@ -37,4 +37,7 @@ export class OrderItem {
 
   @Column({ type: 'timestamp', nullable: true })
   sentToKitchenAt: Date | null;
+
+  @Column({ type: 'boolean', default: false })
+  isVoided: boolean;
 }
