@@ -7,6 +7,8 @@ import { TenantId } from '../../shared/decorators/tenant-id.decorator';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { RolesGuard } from '../../core/auth/roles.guard';
 
+import { UserId } from '../../shared/decorators/user-id.decorator';
+
 @Controller('orders')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class OrdersController {
@@ -21,9 +23,10 @@ export class OrdersController {
   @Roles('admin', 'manager', 'cashier', 'waiter')
   open(
     @TenantId() restaurantId: string,
-    @Body() dto: CreateOrderDto & { userId: string },
+    @UserId() userId: string,
+    @Body() dto: CreateOrderDto,
   ) {
-    return this.ordersService.openTable(restaurantId, dto.userId, dto);
+    return this.ordersService.openTable(restaurantId, userId, dto);
   }
 
   @Get(':id')

@@ -10,7 +10,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'comandix',
-  entities: ['src/**/*.entity.ts'],
+  entities: [__dirname + '/**/*.entity{.ts,.js}'],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
 });
