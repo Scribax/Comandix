@@ -133,6 +133,10 @@ class PosRepository {
     return ProductionSectorModel.fromJson(response.data);
   }
 
+  Future<void> deleteProductionSector(String id) async {
+    await apiClient.dio.delete('/production-sectors/$id');
+  }
+
   // Printers
   Future<List<PrinterModel>> getPrinters() async {
     final response = await apiClient.dio.get('/printers');
