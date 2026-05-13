@@ -1261,17 +1261,30 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12.0)),
+        const SizedBox(height: 8.0),
         TextField(
           controller: TextEditingController(text: initialValue)..selection = TextSelection.collapsed(offset: initialValue.length),
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 14.0),
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white.withOpacity(0.05),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: io.Platform.isWindows ? const BorderSide(color: Colors.white10, width: 1.0) : BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: const BorderSide(color: Colors.white10, width: 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: const BorderSide(color: AppColors.accent, width: 1.0),
+            ),
           ),
+          cursorColor: AppColors.accent,
+          cursorWidth: 2.0,
           onChanged: onChanged,
         ),
       ],
