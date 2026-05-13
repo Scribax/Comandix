@@ -11,6 +11,7 @@ import '../../shared/models/production_sector_model.dart';
 import '../../shared/models/printer_model.dart';
 import '../../core/utils/printer_scanner.dart';
 import '../../core/theme/app_theme.dart';
+import './widgets/ticket_preview.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -24,10 +25,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  TicketConfigModel _ticketConfig = TicketConfigModel();
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     // FIX: Listen to tab changes to update the "Add" button text
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -98,6 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             _buildProductsList(state.products, state.categories).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
                             _buildProductionSectorsList(state.productionSectors).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
                             _buildPrintersList(state.printers).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
+                            _buildTicketDesigner().animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
                           ],
                         ),
                       ),
@@ -171,6 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           Tab(text: '  PRODUCTOS  '),
           Tab(text: '  SECTORES  '),
           Tab(text: '  IMPRESORAS  '),
+          Tab(text: '  COMANDAS  '),
         ],
       ),
     );
@@ -197,7 +202,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ? 'Añadir Producto' 
             : _tabController.index == 2
               ? 'Añadir Sector'
-              : 'Añadir Impresora'
+              : _tabController.index == 3
+                ? 'Añadir Impresora'
+                : 'Guardar Plantilla'
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.accent,
@@ -1083,6 +1090,101 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTicketDesigner() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Editor Form
+        Expanded(
+          flex: 2,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('DATOS DEL ESTABLECIMIENTO', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  const SizedBox(height: 24),
+                  _buildDesignerField('Nombre del Negocio', _ticketConfig.businessName, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(businessName: val))),
+                  const SizedBox(height: 16),
+                  _buildDesignerField('Dirección', _ticketConfig.address, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(address: val))),
+                  const SizedBox(height: 16),
+                  _buildDesignerField('Teléfono', _ticketConfig.phone, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(phone: val))),
+                  const SizedBox(height: 32),
+                  
+                  const Text('MENSAJE DE PIE DE PÁGINA', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  const SizedBox(height: 16),
+                  _buildDesignerField('Mensaje', _ticketConfig.footerMessage, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(footerMessage: val))),
+                  const SizedBox(height: 32),
+                  
+                  const Text('OPCIONES DE VISIBILIDAD', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  const SizedBox(height: 16),
+                  _buildDesignerToggle('Mostrar Logo', _ticketConfig.showLogo, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(showLogo: val))),
+                  _buildDesignerToggle('Mostrar Fecha y Hora', _ticketConfig.showDate, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(showDate: val))),
+                  _buildDesignerToggle('Mostrar Info de Mesa', _ticketConfig.showTable, (val) => setState(() => _ticketConfig = _ticketConfig.copyWith(showTable: val))),
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        const SizedBox(width: 40),
+        
+        // Previewer
+        Expanded(
+          flex: 1,
+          child: Column(
+            children: [
+              const Text('VISTA PREVIA REAL', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+              const SizedBox(height: 24),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: TicketPreview(config: _ticketConfig),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesignerField(String label, String initialValue, Function(String) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: TextEditingController(text: initialValue)..selection = TextSelection.collapsed(offset: initialValue.length),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.05),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesignerToggle(String label, bool value, Function(bool) onChanged) {
+    return SwitchListTile(
+      title: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      value: value,
+      onChanged: onChanged,
+      activeColor: AppColors.accent,
+      contentPadding: EdgeInsets.zero,
     );
   }
 
