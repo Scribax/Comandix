@@ -8,6 +8,7 @@ import '../pos/bloc/pos_state.dart';
 import '../../shared/models/category_model.dart';
 import '../../shared/models/product_model.dart';
 import '../../shared/models/production_sector_model.dart';
+import '../../shared/models/printer_model.dart';
 import '../../core/theme/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -25,7 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     // FIX: Listen to tab changes to update the "Add" button text
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -95,6 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             _buildCategoriesList(state).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
                             _buildProductsList(state.products, state.categories).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
                             _buildProductionSectorsList(state.productionSectors).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
+                            _buildPrintersList(state.printers).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1),
                           ],
                         ),
                       ),
@@ -166,7 +168,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         tabs: const [
           Tab(text: '  CATEGORÍAS  '),
           Tab(text: '  PRODUCTOS  '),
-          Tab(text: '  SECTORES DE PRODUCCIÓN  '),
+          Tab(text: '  SECTORES  '),
+          Tab(text: '  IMPRESORAS  '),
         ],
       ),
     );
@@ -179,8 +182,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           _showCategoryDialog(productionSectors: state.productionSectors);
         } else if (_tabController.index == 1) {
           _showProductDialog(categories: state.categories);
-        } else {
+        } else if (_tabController.index == 2) {
           _showProductionSectorDialog();
+        } else {
+          _showPrinterDialog();
         }
       },
       icon: const Icon(Icons.add, size: 20),
@@ -189,7 +194,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           ? 'Añadir Categoría' 
           : _tabController.index == 1 
             ? 'Añadir Producto' 
-            : 'Añadir Sector'
+            : _tabController.index == 2
+              ? 'Añadir Sector'
+              : 'Añadir Impresora'
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.accent,
@@ -685,7 +692,253 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  void _confirmDelete(String id, bool isCategory, {bool isProductionSector = false}) {
+  Widget _buildPrintersList(List<PrinterModel> printers) {
+    if (printers.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.print_outlined, size: 64, color: Colors.white.withOpacity(0.1)),
+            const SizedBox(height: 24),
+            const Text('No hay impresoras configuradas', style: TextStyle(color: Colors.white38)),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.only(top: 16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
+        childAspectRatio: 1.6,
+      ),
+      itemCount: printers.length,
+      itemBuilder: (context, index) {
+        final printer = printers[index];
+        final bool isOnline = printer.isActive;
+
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: Colors.white.withOpacity(0.02),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: (printer.type == 'LAN' ? const Color(0xFF3B82F6) : const Color(0xFF9B59B6)).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        printer.type == 'LAN' ? Icons.lan_rounded : Icons.cloud_done_rounded,
+                        color: printer.type == 'LAN' ? const Color(0xFF3B82F6) : const Color(0xFF9B59B6),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        _buildActionIcon(Icons.play_arrow_rounded, const Color(0xFF10B981), () {
+                          context.read<PosBloc>().add(PosPrinterTestRequested(printer.id));
+                        }),
+                        const SizedBox(width: 8),
+                        _buildActionIcon(Icons.edit_rounded, Colors.white38, () => _showPrinterDialog(printer: printer)),
+                        const SizedBox(width: 8),
+                        _buildActionIcon(Icons.delete_outline_rounded, AppColors.error, () => _confirmDelete(printer.id, false, isPrinter: true)),
+                      ],
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(printer.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      printer.type == 'LAN' ? (printer.ipAddress ?? 'Sin IP') : 'Cloud Interface',
+                      style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    ),
+                    const Spacer(),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isOnline ? const Color(0xFF10B981) : Colors.white10,
+                        boxShadow: [
+                          if (isOnline) BoxShadow(color: const Color(0xFF10B981).withOpacity(0.5), blurRadius: 10),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isOnline ? 'ONLINE' : 'OFFLINE',
+                      style: TextStyle(
+                        color: isOnline ? const Color(0xFF10B981) : Colors.white10,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPrinterDialog({PrinterModel? printer}) {
+    final state = context.read<PosBloc>().state as PosLoaded;
+    final nameController = TextEditingController(text: printer?.name);
+    final ipController = TextEditingController(text: printer?.ipAddress);
+    final portController = TextEditingController(text: printer?.port?.toString() ?? '9100');
+    final endpointController = TextEditingController(text: printer?.endpointUrl);
+    final tokenController = TextEditingController(text: printer?.token);
+    String selectedType = printer?.type ?? 'LAN';
+    String? selectedSectorId = printer?.productionSectorId;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.backgroundSecondary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(printer == null ? 'Nueva Impresora' : 'Editar Impresora', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(labelText: 'Nombre (ej: Cocina)', labelStyle: TextStyle(color: Colors.white38)),
+                  ),
+                  const SizedBox(height: 24),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('VINCULAR A SECTOR', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.1))),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedSectorId,
+                        dropdownColor: AppColors.backgroundSecondary,
+                        hint: const Text('Opcional: Seleccionar Sector', style: TextStyle(color: Colors.white24, fontSize: 14)),
+                        isExpanded: true,
+                        items: state.productionSectors.map((sector) => DropdownMenuItem(value: sector.id, child: Text(sector.name, style: const TextStyle(color: Colors.white)))).toList(),
+                        onChanged: (val) => setDialogState(() => selectedSectorId = val),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      _buildTypeToggle('LAN', 'Red Local', Icons.lan_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
+                      const SizedBox(width: 12),
+                      _buildTypeToggle('INTERNET', 'Cloud', Icons.cloud_done_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  if (selectedType == 'LAN') ...[
+                    TextField(
+                      controller: ipController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Dirección IP', hintText: '192.168.1.100', labelStyle: TextStyle(color: Colors.white38)),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: portController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Puerto', hintText: '9100', labelStyle: TextStyle(color: Colors.white38)),
+                    ),
+                  ] else ...[
+                    TextField(
+                      controller: endpointController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Endpoint URL', labelStyle: TextStyle(color: Colors.white38)),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: tokenController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(labelText: 'Access Token', labelStyle: TextStyle(color: Colors.white38)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
+            ElevatedButton(
+              onPressed: () {
+                final data = {
+                  'name': nameController.text,
+                  'type': selectedType,
+                  'ipAddress': ipController.text,
+                  'port': int.tryParse(portController.text),
+                  'endpointUrl': endpointController.text,
+                  'token': tokenController.text,
+                  'productionSectorId': selectedSectorId,
+                  'isActive': true,
+                };
+                if (printer == null) {
+                  context.read<PosBloc>().add(PosPrinterCreated(data));
+                } else {
+                  context.read<PosBloc>().add(PosPrinterUpdated(printer.id, data));
+                }
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.black),
+              child: const Text('GUARDAR', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeToggle(String value, String label, IconData icon, String selected, Function(String) onSelected) {
+    bool isSelected = selected == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onSelected(value),
+        child: AnimatedContainer(
+          duration: 200.ms,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.accent : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: isSelected ? Colors.black : Colors.white38, size: 20),
+              const SizedBox(height: 4),
+              Text(label, style: TextStyle(color: isSelected ? Colors.black : Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(String id, bool isCategory, {bool isProductionSector = false, bool isPrinter = false}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -700,6 +953,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 context.read<PosBloc>().add(PosCategoryDeleted(id));
               } else if (isProductionSector) {
                 context.read<PosBloc>().add(PosProductionSectorDeleted(id));
+              } else if (isPrinter) {
+                context.read<PosBloc>().add(PosPrinterDeleted(id));
               } else {
                 context.read<PosBloc>().add(PosProductDeleted(id));
               }

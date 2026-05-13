@@ -119,3 +119,25 @@ class PosProductionSectorDeleted extends PosEvent {
   final String id;
   PosProductionSectorDeleted(this.id);
 }
+
+// Printer Events
+class PosPrinterCreated extends PosEvent {
+  final Map<String, dynamic> data;
+  PosPrinterCreated(this.data);
+}
+
+class PosPrinterUpdated extends PosEvent {
+  final String id;
+  final Map<String, dynamic> data;
+  PosPrinterUpdated(this.id, this.data);
+}
+
+class PosPrinterDeleted extends PosEvent {
+  final String id;
+  PosPrinterDeleted(this.id);
+}
+
+class PosPrinterTestRequested extends PosEvent {
+  final String id;
+  PosPrinterTestRequested(this.id);
+}

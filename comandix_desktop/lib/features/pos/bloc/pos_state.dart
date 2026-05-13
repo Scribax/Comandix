@@ -5,6 +5,7 @@ import '../../../shared/models/product_model.dart';
 import '../../../shared/models/order_model.dart';
 import '../../../shared/models/order_item_model.dart';
 import '../../../shared/models/production_sector_model.dart';
+import '../../../shared/models/printer_model.dart';
 
 abstract class PosState {}
 
@@ -18,6 +19,7 @@ class PosLoaded extends PosState {
   final List<CategoryModel> categories;
   final List<ProductModel> products;
   final List<ProductionSectorModel> productionSectors;
+  final List<PrinterModel> printers;
   final List<OrderModel> activeOrders;
   final String? selectedSectorId;
   final String? selectedCategoryId;
@@ -33,6 +35,7 @@ class PosLoaded extends PosState {
     required this.categories,
     required this.products,
     required this.productionSectors,
+    required this.printers,
     required this.activeOrders,
     this.selectedSectorId,
     this.selectedCategoryId,
@@ -48,6 +51,7 @@ class PosLoaded extends PosState {
     List<CategoryModel>? categories,
     List<ProductModel>? products,
     List<ProductionSectorModel>? productionSectors,
+    List<PrinterModel>? printers,
     List<OrderModel>? activeOrders,
     String? selectedSectorId,
     String? selectedCategoryId,
@@ -63,6 +67,7 @@ class PosLoaded extends PosState {
       categories: categories ?? this.categories,
       products: products ?? this.products,
       productionSectors: productionSectors ?? this.productionSectors,
+      printers: printers ?? this.printers,
       activeOrders: activeOrders ?? this.activeOrders,
       selectedSectorId: selectedSectorId ?? this.selectedSectorId,
       selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,

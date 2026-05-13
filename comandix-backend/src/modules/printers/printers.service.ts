@@ -24,27 +24,73 @@ export class PrintersService {
   ) {}
 
   async findAll(restaurantId: string) {
-    return this.printersRepo.find({ where: { restaurantId } });
+    return this.printersRepo.find({ where: { restaurantId }, relations: ['routes'] });
+  }
+
+  async create(restaurantId: string, data: any) {
+    const printer = this.printersRepo.create({ ...data, restaurantId });
+    return this.printersRepo.save(printer);
+  }
+
+  async update(restaurantId: string, id: string, data: any) {
+    await this.printersRepo.update({ id, restaurantId }, data);
+    return this.printersRepo.findOne({ where: { id, restaurantId } });
+  }
+
+  async delete(restaurantId: string, id: string) {
+    return this.printersRepo.delete({ id, restaurantId });
+  }
+
+  async testPrint(restaurantId: string, id: string) {
+    const printer = await this.printersRepo.findOne({ where: { id, restaurantId } });
+    if (!printer) return;
+
+    const ticketText = [
+      '--------------------------------',
+      '       PRUEBA DE IMPRESION      ',
+      '         COMANDIX POS           ',
+      '--------------------------------',
+      `IMPRESORA: ${printer.name}`,
+      `TIPO     : ${printer.type}`,
+      `FECHA    : ${new Date().toLocaleDateString()}`,
+      `HORA     : ${new Date().toLocaleTimeString()}`,
+      '--------------------------------',
+      '    SISTEMA LISTO PARA OPERAR   ',
+      '--------------------------------',
+    ].join('\n');
+
+    if (printer.type === 'INTERNET') {
+      await this.printerQueue.add('print_internet', { printer, ticketText });
+    } else {
+      this.logger.log(`[LAN-TEST] Test print job for ${printer.name} queued.`);
+    }
   }
 
   async routeAndPrint(restaurantId: string, order: Order) {
-    // 1. Load active routes for this restaurant
+    // 1. Load active routes
     const routes = await this.routesRepo.find({
       where: { restaurantId },
       relations: ['printer'],
     });
 
-    // 2. Build categoryId → Printer map
-    const categoryPrinterMap = new Map<string, Printer>();
-    routes.forEach((r) => {
-      if (r.printer?.isActive) categoryPrinterMap.set(r.categoryId, r.printer);
-    });
+    // 2. Load all printers for sector-based routing
+    const allPrinters = await this.printersRepo.find({ where: { restaurantId, isActive: true } });
 
     // 3. Group items by printer
     const jobs = new Map<string, { printer: Printer; items: OrderItem[] }>();
     for (const item of order.items) {
-      const catId = (item.product as any)?.categoryId;
-      const printer = categoryPrinterMap.get(catId);
+      const product = item.product as any;
+      const catId = product?.categoryId;
+      const sectorId = product?.category?.productionSectorId;
+      
+      // A. Check specific category route first
+      let printer = routes.find(r => r.categoryId === catId)?.printer;
+      
+      // B. Fallback to sector-based printer
+      if (!printer && sectorId) {
+        printer = allPrinters.find(p => p.productionSectorId === sectorId);
+      }
+
       if (!printer) continue;
       if (!jobs.has(printer.id)) jobs.set(printer.id, { printer, items: [] });
       jobs.get(printer.id)!.items.push(item);

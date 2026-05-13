@@ -5,6 +5,7 @@ import '../../shared/models/category_model.dart';
 import '../../shared/models/product_model.dart';
 import '../../shared/models/order_model.dart';
 import '../../shared/models/production_sector_model.dart';
+import '../../shared/models/printer_model.dart';
 
 class PosRepository {
   final ApiClient apiClient;
@@ -132,7 +133,27 @@ class PosRepository {
     return ProductionSectorModel.fromJson(response.data);
   }
 
-  Future<void> deleteProductionSector(String id) async {
-    await apiClient.dio.delete('/production-sectors/$id');
+  // Printers
+  Future<List<PrinterModel>> getPrinters() async {
+    final response = await apiClient.dio.get('/printers');
+    return (response.data as List).map((json) => PrinterModel.fromJson(json)).toList();
+  }
+
+  Future<PrinterModel> createPrinter(Map<String, dynamic> data) async {
+    final response = await apiClient.dio.post('/printers', data: data);
+    return PrinterModel.fromJson(response.data);
+  }
+
+  Future<PrinterModel> updatePrinter(String id, Map<String, dynamic> data) async {
+    final response = await apiClient.dio.put('/printers/$id', data: data);
+    return PrinterModel.fromJson(response.data);
+  }
+
+  Future<void> deletePrinter(String id) async {
+    await apiClient.dio.delete('/printers/$id');
+  }
+
+  Future<void> testPrinter(String id) async {
+    await apiClient.dio.post('/printers/$id/test');
   }
 }

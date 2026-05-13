@@ -41,6 +41,9 @@ export class Printer {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ nullable: true })
+  productionSectorId: string;
+
   @OneToMany(() => PrinterRoute, (pr) => pr.printer)
   routes: PrinterRoute[];
 }

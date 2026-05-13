@@ -35,6 +35,10 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     on<PosProductionSectorCreated>(_onProductionSectorCreated);
     on<PosProductionSectorUpdated>(_onProductionSectorUpdated);
     on<PosProductionSectorDeleted>(_onProductionSectorDeleted);
+    on<PosPrinterCreated>(_onPrinterCreated);
+    on<PosPrinterUpdated>(_onPrinterUpdated);
+    on<PosPrinterDeleted>(_onPrinterDeleted);
+    on<PosPrinterTestRequested>(_onPrinterTestRequested);
 
     // Listen to real-time events
     _orderUpdatedSubscription = socketClient.onOrderUpdated.listen((_) {
@@ -89,6 +93,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
       final categories = await repository.getCategories();
       final products = await repository.getProducts();
       final productionSectors = await repository.getProductionSectors();
+      final printers = await repository.getPrinters();
       final activeOrders = await repository.getActiveOrders();
       final dashboardStats = await repository.getDashboardStats();
 
@@ -98,6 +103,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         categories: categories,
         products: products,
         productionSectors: productionSectors,
+        printers: printers,
         activeOrders: activeOrders,
         selectedSectorId: currentSectorId ?? (sectors.isNotEmpty ? sectors.first.id : null),
         selectedCategoryId: currentCategoryId ?? (categories.isNotEmpty ? categories.first.id : null),
@@ -392,6 +398,41 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     try {
       await repository.deleteProductionSector(event.id);
       add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onPrinterCreated(PosPrinterCreated event, Emitter<PosState> emit) async {
+    try {
+      await repository.createPrinter(event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onPrinterUpdated(PosPrinterUpdated event, Emitter<PosState> emit) async {
+    try {
+      await repository.updatePrinter(event.id, event.data);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onPrinterDeleted(PosPrinterDeleted event, Emitter<PosState> emit) async {
+    try {
+      await repository.deletePrinter(event.id);
+      add(PosDataLoaded());
+    } catch (e) {
+      emit(PosError(e.toString()));
+    }
+  }
+
+  Future<void> _onPrinterTestRequested(PosPrinterTestRequested event, Emitter<PosState> emit) async {
+    try {
+      await repository.testPrinter(event.id);
     } catch (e) {
       emit(PosError(e.toString()));
     }

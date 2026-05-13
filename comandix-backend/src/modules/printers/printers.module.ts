@@ -7,8 +7,10 @@ import { PrinterRoute } from './entities/printer-route.entity';
 import { PrintJob } from './entities/print-job.entity';
 import { PrintersService } from './printers.service';
 import { PrinterProcessor } from './printer.processor';
+import { PrintersController } from './printers.controller';
 
 @Module({
+  controllers: [PrintersController],
   imports: [
     TypeOrmModule.forFeature([Printer, PrinterRoute, PrintJob]),
     HttpModule,
