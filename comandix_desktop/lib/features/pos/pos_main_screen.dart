@@ -20,6 +20,7 @@ import '../floor_plan/floor_plan_editor.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/network/socket_client.dart';
+import '../floor_plan/widgets/canvas_element.dart';
 
 class PosMainScreen extends StatefulWidget {
   const PosMainScreen({super.key});
@@ -142,32 +143,45 @@ class _PosMainScreenState extends State<PosMainScreen> {
                         ),
                       const SizedBox(height: 24),
                       
-                      // Tables Grid
+                      // Visual Floor Plan View
                       Expanded(
                         child: activeTables.isEmpty 
-                          ? Center(child: Text('No hay mesas en este sector.', style: TextStyle(color: Colors.white54)))
-                          : GridView.builder(
-                              padding: const EdgeInsets.only(bottom: 32),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 5,
-                                crossAxisSpacing: 24,
-                                mainAxisSpacing: 24,
-                                childAspectRatio: 1.1,
+                          ? const Center(child: Text('No hay mesas en este sector.', style: TextStyle(color: Colors.white54)))
+                          : InteractiveViewer(
+                              minScale: 0.1,
+                              maxScale: 2.0,
+                              boundaryMargin: const EdgeInsets.all(1000),
+                              child: Stack(
+                                children: [
+                                  // Structural elements (walls, labels, icons)
+                                  ...state.tables
+                                      .where((t) => t.sectorId == state.selectedSectorId && t.type != 'table')
+                                      .map((element) => CanvasElement(
+                                            element: element,
+                                            isSelected: false,
+                                            isReadOnly: true,
+                                            onTap: () {},
+                                            onDragStart: () {},
+                                            onDrag: (_) {},
+                                            onDragEnd: () {},
+                                          )),
+                                  
+                                  // Interactive Tables
+                                  ...activeTables.where((t) => t.type == 'table').map((table) {
+                                    return CanvasElement(
+                                      element: table,
+                                      isSelected: false,
+                                      isReadOnly: true,
+                                      onTap: () {
+                                        context.read<PosBloc>().add(PosTableSelected(table.id));
+                                      },
+                                      onDragStart: () {},
+                                      onDrag: (_) {},
+                                      onDragEnd: () {},
+                                    );
+                                  }),
+                                ],
                               ),
-                              itemCount: activeTables.length,
-                              itemBuilder: (context, index) {
-                                final table = activeTables[index];
-                                final activeOrderIndex = state.activeOrders.indexWhere((o) => o.tableId == table.id);
-                                final activeOrder = activeOrderIndex >= 0 ? state.activeOrders[activeOrderIndex] : null;
-
-                                return TableCard(
-                                  table: table,
-                                  activeOrder: activeOrder,
-                                  onTap: () {
-                                    context.read<PosBloc>().add(PosTableSelected(table.id));
-                                  },
-                                );
-                              },
                             ),
                       ),
                     ],

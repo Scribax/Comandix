@@ -25,6 +25,7 @@ services:
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_NAME=comandix
+      - DB_SYNC=true
       - REDIS_URL=redis://redis:6379
       - PORT=3000
     depends_on:
