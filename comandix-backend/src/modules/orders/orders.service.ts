@@ -119,6 +119,15 @@ export class OrdersService {
       this.gateway.emitNewKitchenOrder(restaurantId, order);
     }
 
+    if (status === OrderStatus.READY) {
+      const table = await this.tablesRepo.findOne({ where: { id: order.tableId } });
+      if (table) {
+        table.status = 'ready';
+        await this.tablesRepo.save(table);
+        this.gateway.emitTableUpdate(restaurantId, table);
+      }
+    }
+
     if (status === OrderStatus.CANCELLED) {
       const table = await this.tablesRepo.findOne({ where: { id: order.tableId } });
       if (table) {
@@ -233,5 +242,71 @@ export class OrdersService {
     }
     
     return this.ordersRepo.remove(order);
+  }
+
+  async getDashboardStats(restaurantId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // 1. Get Today's Sales & Orders
+    const todayOrders = await this.ordersRepo.find({
+      where: {
+        restaurantId,
+        status: OrderStatus.PAID,
+      }
+    });
+    
+    // Filter by date manually to be safe with DB timezones
+    const todayPaidOrders = todayOrders.filter(o => o.closedAt && o.closedAt >= today && o.closedAt < tomorrow);
+    const yesterdayPaidOrders = todayOrders.filter(o => o.closedAt && o.closedAt >= yesterday && o.closedAt < today);
+
+    const salesToday = todayPaidOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    const salesYesterday = yesterdayPaidOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    const ordersCount = todayPaidOrders.length;
+
+    // 2. Occupation
+    const tables = await this.tablesRepo.find({ where: { restaurantId } });
+    const totalTables = tables.length;
+    const occupiedTables = tables.filter(t => t.status === 'occupied').length;
+    const occupationPercent = totalTables > 0 ? (occupiedTables / totalTables) * 100 : 0;
+
+    // 3. Sales By Hour (Today)
+    const salesByHour = Array(12).fill(0).map((_, i) => ({ hour: 12 + i, total: 0 })); 
+    todayPaidOrders.forEach(o => {
+      const hour = o.closedAt.getHours();
+      const slot = salesByHour.find(s => s.hour === hour);
+      if (slot) slot.total += Number(o.total);
+    });
+
+    // 4. Top Products
+    const productMap = new Map<string, { name: string, count: number }>();
+    const allItems = await this.itemsRepo.find({
+      where: { orderId: In(todayPaidOrders.map(o => o.id)) }
+    });
+
+    allItems.forEach(item => {
+      const existing = productMap.get(item.productId) || { name: item.productNameSnapshot, count: 0 };
+      existing.count += item.quantity;
+      productMap.set(item.productId, existing);
+    });
+
+    const topProducts = Array.from(productMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4);
+
+    return {
+      salesToday,
+      salesYesterday,
+      ordersCount,
+      occupationPercent,
+      salesByHour,
+      topProducts
+    };
   }
 }

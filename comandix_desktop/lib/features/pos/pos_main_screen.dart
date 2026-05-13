@@ -13,7 +13,7 @@ import '../kitchen/kds_screen.dart';
 import '../kitchen/bloc/kds_bloc.dart';
 import '../kitchen/bloc/kds_event.dart';
 import '../delivery/delivery_screen.dart';
-import '../history/history_screen.dart';
+import '../history/dashboard_screen.dart';
 import '../settings/settings_screen.dart';
 import 'order_taking_screen.dart';
 import '../floor_plan/floor_plan_editor.dart';
@@ -90,7 +90,7 @@ class _PosMainScreenState extends State<PosMainScreen> {
                           OrdersScreen(),
                           KdsScreen(),
                           DeliveryScreen(),
-                          HistoryScreen(),
+                          DashboardScreen(),
                           SettingsScreen(),
                         ],
                       ),
@@ -127,18 +127,27 @@ class _PosMainScreenState extends State<PosMainScreen> {
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
-                            children: state.sectors.map((sector) {
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 16),
-                                child: InkWell(
-                                  onTap: () {
-                                    context.read<PosBloc>().add(PosSectorSelected(sector.id));
-                                  },
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: _buildSectorTab(sector.name, state.selectedSectorId == sector.id),
-                                ),
-                              );
-                            }).toList(),
+                            children: [
+                              ...state.sectors.map((sector) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 16),
+                                  child: InkWell(
+                                    onTap: () {
+                                      context.read<PosBloc>().add(PosSectorSelected(sector.id));
+                                    },
+                                    borderRadius: BorderRadius.circular(100),
+                                    child: _buildSectorTab(sector.name, state.selectedSectorId == sector.id),
+                                  ),
+                                );
+                              }).toList(),
+                              
+                              // Add Sector Button
+                              IconButton(
+                                icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF3B82F6), size: 32),
+                                onPressed: () => _showAddSectorDialog(context),
+                                tooltip: 'Agregar Sector',
+                              ),
+                            ],
                           ),
                         ),
                       const SizedBox(height: 24),
@@ -369,7 +378,7 @@ class _PosMainScreenState extends State<PosMainScreen> {
           _buildSidebarItem(context, 1, Icons.receipt_long_rounded, 'Pedidos', currentIndex == 1, badge: activeOrdersCount > 0 ? activeOrdersCount.toString() : null),
           _buildSidebarItem(context, 2, Icons.soup_kitchen_rounded, 'Cocina', currentIndex == 2),
           _buildSidebarItem(context, 3, Icons.delivery_dining, 'Delivery', currentIndex == 3),
-          _buildSidebarItem(context, 4, Icons.history_rounded, 'Historial', currentIndex == 4),
+          _buildSidebarItem(context, 4, Icons.bar_chart_rounded, 'Dashboard', currentIndex == 4),
           
           const Spacer(),
           
@@ -453,6 +462,97 @@ class _PosMainScreenState extends State<PosMainScreen> {
                     ),
                     child: Text(badge, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                   )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddSectorDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 40, spreadRadius: 10)
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Nuevo Sector',
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Crea una nueva zona para tu restaurante',
+                  style: TextStyle(color: Colors.white54, fontSize: 14),
+                ),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  decoration: InputDecoration(
+                    labelText: 'Nombre del Sector',
+                    labelStyle: const TextStyle(color: Colors.white38),
+                    hintText: 'Ej: Terraza, Planta Alta...',
+                    hintStyle: const TextStyle(color: Colors.white10),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: Colors.white10),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                    ),
+                  ),
+                  onSubmitted: (val) {
+                    if (val.isNotEmpty) {
+                      context.read<PosBloc>().add(PosSectorCreated(val));
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('CANCELAR', style: TextStyle(color: Colors.white54)),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (controller.text.isNotEmpty) {
+                          context.read<PosBloc>().add(PosSectorCreated(controller.text));
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3B82F6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('CREAR SECTOR', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

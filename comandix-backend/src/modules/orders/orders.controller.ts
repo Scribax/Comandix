@@ -19,6 +19,12 @@ export class OrdersController {
     return this.ordersService.getActiveOrders(restaurantId);
   }
 
+  @Get('stats/dashboard')
+  @Roles('admin', 'manager')
+  getStats(@TenantId() restaurantId: string) {
+    return this.ordersService.getDashboardStats(restaurantId);
+  }
+
   @Post()
   @Roles('admin', 'manager', 'cashier', 'waiter')
   create(

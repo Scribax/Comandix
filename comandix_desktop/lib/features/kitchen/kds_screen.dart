@@ -122,38 +122,69 @@ class _KdsScreenState extends State<KdsScreen> {
     final now = DateTime.now();
     final elapsed = now.difference(order.createdAt);
     final minutes = elapsed.inMinutes;
-    final seconds = elapsed.inSeconds % 60;
-
-    // Ticket color based on wait time
+    final seconds = elapsed.inSeconds % 60;    // Ticket color and effects based on wait time
     Color headerColor = const Color(0xFF1E293B);
-    if (minutes >= 10) headerColor = const Color(0xFF991B1B); // Red for > 10 min
-    else if (minutes >= 5) headerColor = const Color(0xFF92400E); // Orange for > 5 min
+    Color glowColor = Colors.transparent;
+    bool shouldPulse = false;
 
-    return Container(
+    if (minutes >= 10) {
+      headerColor = const Color(0xFF991B1B); // Red for > 10 min
+      glowColor = Colors.red.withOpacity(0.3);
+      shouldPulse = true;
+    } else if (minutes >= 5) {
+      headerColor = const Color(0xFF92400E); // Orange for > 5 min
+      glowColor = Colors.orange.withOpacity(0.2);
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 1000),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: shouldPulse && now.second % 2 == 0 ? Colors.red : Colors.white10,
+          width: 2,
+        ),
+        boxShadow: [
+          if (glowColor != Colors.transparent)
+            BoxShadow(
+              color: shouldPulse && now.second % 2 == 0 ? glowColor : glowColor.withOpacity(0.1),
+              blurRadius: 20,
+              spreadRadius: 2,
+            )
+        ],
       ),
       child: Column(
         children: [
           // Ticket Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: headerColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Mesa ${order.table?.name ?? '??'}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
                 ),
-                Text(
-                  '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      color: shouldPulse ? Colors.white : Colors.white70,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -164,28 +195,66 @@ class _KdsScreenState extends State<KdsScreen> {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: order.items.length,
-              separatorBuilder: (context, index) => const Divider(color: Colors.white10),
+              separatorBuilder: (context, index) => const Divider(color: Colors.white10, height: 24),
               itemBuilder: (context, index) {
                 final item = order.items[index];
-                return Row(
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${item.quantity}x',
-                      style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold, fontSize: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3B82F6).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${item.quantity}x',
+                            style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.w900, fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            item.productNameSnapshot.toUpperCase(),
+                            style: TextStyle(
+                              color: item.isVoided ? Colors.red.withOpacity(0.5) : Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              decoration: item.isVoided ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        item.productNameSnapshot,
-                        style: TextStyle(
-                          color: item.isVoided ? Colors.red.withOpacity(0.5) : Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          decoration: item.isVoided ? TextDecoration.lineThrough : null,
+                    if (item.notes != null && item.notes!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8, left: 38),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.info_outline, size: 12, color: Colors.amber),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  item.notes!,
+                                  style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 );
               },

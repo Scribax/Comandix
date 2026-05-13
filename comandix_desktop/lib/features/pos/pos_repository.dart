@@ -15,6 +15,11 @@ class PosRepository {
     return (response.data as List).map((json) => SectorModel.fromJson(json)).toList();
   }
 
+  Future<SectorModel> createSector(String name) async {
+    final response = await apiClient.dio.post('/sectors', data: {'name': name});
+    return SectorModel.fromJson(response.data);
+  }
+
   Future<List<TableModel>> getTables() async {
     final response = await apiClient.dio.get('/tables');
     return (response.data as List).map((json) => TableModel.fromJson(json)).toList();
@@ -73,5 +78,10 @@ class PosRepository {
 
   Future<void> updateTables(List<TableModel> tables) async {
     await apiClient.dio.put('/tables/bulk', data: tables.map((t) => t.toJson()).toList());
+  }
+
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    final response = await apiClient.dio.get('/orders/stats/dashboard');
+    return response.data as Map<String, dynamic>;
   }
 }

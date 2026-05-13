@@ -26,8 +26,12 @@ class KdsBloc extends Bloc<KdsEvent, KdsState> {
   Future<void> _onStarted(KdsStarted event, Emitter<KdsState> emit) async {
     try {
       final allOrders = await repository.getActiveOrders();
-      // Filter only orders that are in the kitchen (or preparing if we add that status)
-      final kitchenOrders = allOrders.where((o) => o.status == 'sent_to_kitchen' || o.status == 'preparing').toList();
+      // Filter orders that are pending, sent to kitchen, or preparing
+      final kitchenOrders = allOrders.where((o) => 
+        o.status == 'pending' || 
+        o.status == 'sent_to_kitchen' || 
+        o.status == 'preparing'
+      ).toList();
       emit(KdsLoaded(activeKitchenOrders: kitchenOrders));
     } catch (e) {
       emit(KdsError(e.toString()));

@@ -24,6 +24,8 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     on<PosOrderClosed>(_onOrderClosed);
     on<PosViewChanged>(_onViewChanged);
     on<PosItemVoided>(_onItemVoided);
+    on<PosSectorCreated>(_onSectorCreated);
+    on<PosItemNoteUpdated>(_onItemNoteUpdated);
 
     // Listen to real-time events
     _orderUpdatedSubscription = socketClient.onOrderUpdated.listen((_) {
@@ -65,6 +67,12 @@ class PosBloc extends Bloc<PosEvent, PosState> {
   }
 
   Future<void> _onLoadData(PosDataLoaded event, Emitter<PosState> emit) async {
+    final currentSectorId = (state is PosLoaded) ? (state as PosLoaded).selectedSectorId : null;
+    final currentSelectedTable = (state is PosLoaded) ? (state as PosLoaded).selectedTable : null;
+    final currentCategoryId = (state is PosLoaded) ? (state as PosLoaded).selectedCategoryId : null;
+    final currentViewIndex = (state is PosLoaded) ? (state as PosLoaded).currentViewIndex : 0;
+    final currentDrafts = (state is PosLoaded) ? (state as PosLoaded).draftItems : <String, List<OrderItemModel>>{};
+
     emit(PosLoading());
     try {
       final sectors = await repository.getSectors();
@@ -72,6 +80,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
       final categories = await repository.getCategories();
       final products = await repository.getProducts();
       final activeOrders = await repository.getActiveOrders();
+      final dashboardStats = await repository.getDashboardStats();
 
       emit(PosLoaded(
         sectors: sectors,
@@ -79,8 +88,12 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         categories: categories,
         products: products,
         activeOrders: activeOrders,
-        selectedSectorId: sectors.isNotEmpty ? sectors.first.id : null,
-        selectedCategoryId: categories.isNotEmpty ? categories.first.id : null,
+        selectedSectorId: currentSectorId ?? (sectors.isNotEmpty ? sectors.first.id : null),
+        selectedCategoryId: currentCategoryId ?? (categories.isNotEmpty ? categories.first.id : null),
+        selectedTable: currentSelectedTable,
+        currentViewIndex: currentViewIndex,
+        draftItems: currentDrafts,
+        dashboardStats: dashboardStats,
       ));
     } catch (e) {
       emit(PosError(e.toString()));
@@ -180,7 +193,8 @@ class PosBloc extends Bloc<PosEvent, PosState> {
 
         await repository.addItemsToOrder(orderId, event.items);
         final updatedOrders = await repository.getActiveOrders();
-        emit(currentState.copyWith(activeOrders: updatedOrders));
+        final updatedTables = await repository.getTables();
+        emit(currentState.copyWith(activeOrders: updatedOrders, tables: updatedTables));
       } catch (e) {
         emit(currentState);
       }
@@ -218,11 +232,13 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         
         // 4. Refresh & Clear Draft
         final updatedOrders = await repository.getActiveOrders();
+        final updatedTables = await repository.getTables();
         final updatedDrafts = Map<String, List<OrderItemModel>>.from(currentState.draftItems);
         updatedDrafts.remove(event.tableId);
         
         emit(currentState.copyWith(
           activeOrders: updatedOrders,
+          tables: updatedTables,
           draftItems: updatedDrafts,
         ));
       } catch (e) {
@@ -236,10 +252,53 @@ class PosBloc extends Bloc<PosEvent, PosState> {
       final currentState = state as PosLoaded;
       try {
         await repository.closeOrder(event.orderId, event.paymentMethod);
+        
+        // Small delay to ensure DB consistency before refreshing
+        await Future.delayed(const Duration(milliseconds: 200));
+        
+        // Refresh both orders and tables to sync UI
         final updatedOrders = await repository.getActiveOrders();
-        emit(currentState.copyWith(activeOrders: updatedOrders, clearSelectedTable: true));
+        final updatedTables = await repository.getTables();
+        emit(currentState.copyWith(
+          activeOrders: updatedOrders, 
+          tables: updatedTables,
+          clearSelectedTable: true
+        ));
       } catch (e) {
         emit(currentState);
+      }
+    }
+  }
+
+  Future<void> _onSectorCreated(PosSectorCreated event, Emitter<PosState> emit) async {
+    try {
+      await repository.createSector(event.name);
+      add(PosDataLoaded());
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  void _onItemNoteUpdated(PosItemNoteUpdated event, Emitter<PosState> emit) {
+    if (state is PosLoaded) {
+      final currentState = state as PosLoaded;
+      final currentDrafts = Map<String, List<OrderItemModel>>.from(currentState.draftItems);
+      final tableDraft = List<OrderItemModel>.from(currentDrafts[event.tableId] ?? []);
+      
+      if (event.index < tableDraft.length) {
+        final existing = tableDraft[event.index];
+        tableDraft[event.index] = OrderItemModel(
+          id: existing.id,
+          orderId: existing.orderId,
+          productId: existing.productId,
+          product: existing.product,
+          quantity: existing.quantity,
+          unitPriceSnapshot: existing.unitPriceSnapshot,
+          productNameSnapshot: existing.productNameSnapshot,
+          notes: event.note,
+        );
+        currentDrafts[event.tableId] = tableDraft;
+        emit(currentState.copyWith(draftItems: currentDrafts));
       }
     }
   }

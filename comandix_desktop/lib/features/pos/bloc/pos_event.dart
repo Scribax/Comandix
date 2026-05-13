@@ -57,3 +57,15 @@ class PosItemVoided extends PosEvent {
   final String itemId;
   PosItemVoided(this.orderId, this.itemId);
 }
+
+class PosSectorCreated extends PosEvent {
+  final String name;
+  PosSectorCreated(this.name);
+}
+
+class PosItemNoteUpdated extends PosEvent {
+  final String tableId;
+  final int index;
+  final String note;
+  PosItemNoteUpdated(this.tableId, this.index, this.note);
+}

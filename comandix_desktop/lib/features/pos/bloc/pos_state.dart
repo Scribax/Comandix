@@ -23,6 +23,7 @@ class PosLoaded extends PosState {
   // tableId -> list of items not yet sent to kitchen
   final Map<String, List<OrderItemModel>> draftItems;
   final int currentViewIndex;
+  final Map<String, dynamic>? dashboardStats;
 
   PosLoaded({
     required this.sectors,
@@ -35,6 +36,7 @@ class PosLoaded extends PosState {
     this.selectedTable,
     this.draftItems = const {},
     this.currentViewIndex = 0,
+    this.dashboardStats,
   });
 
   PosLoaded copyWith({
@@ -49,6 +51,7 @@ class PosLoaded extends PosState {
     Map<String, List<OrderItemModel>>? draftItems,
     bool clearSelectedTable = false,
     int? currentViewIndex,
+    Map<String, dynamic>? dashboardStats,
   }) {
     return PosLoaded(
       sectors: sectors ?? this.sectors,
@@ -61,6 +64,7 @@ class PosLoaded extends PosState {
       selectedTable: clearSelectedTable ? null : (selectedTable ?? this.selectedTable),
       draftItems: draftItems ?? this.draftItems,
       currentViewIndex: currentViewIndex ?? this.currentViewIndex,
+      dashboardStats: dashboardStats ?? this.dashboardStats,
     );
   }
 }

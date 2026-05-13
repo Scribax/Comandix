@@ -35,14 +35,13 @@ class CanvasElement extends StatelessWidget {
     return Positioned(
       left: element.posX,
       top: element.posY,
-      child: Listener(
-        onPointerDown: isReadOnly ? null : (_) => onDragStart(),
-        onPointerMove: isReadOnly ? null : (details) => onDrag(details.delta),
-        onPointerUp: isReadOnly ? null : (_) => onDragEnd(),
-        child: GestureDetector(
-          onTap: onTap,
-          child: Transform.rotate(
-            angle: element.rotation * math.pi / 180,
+      child: GestureDetector(
+        onTap: onTap,
+        onPanStart: isReadOnly ? null : (_) => onDragStart(),
+        onPanUpdate: isReadOnly ? null : (details) => onDrag(details.delta),
+        onPanEnd: isReadOnly ? null : (_) => onDragEnd(),
+        child: Transform.rotate(
+          angle: element.rotation * math.pi / 180,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               width: element.width,
@@ -90,6 +89,23 @@ class CanvasElement extends StatelessWidget {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        if (element.status == 'ready')
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.8, end: 1.2),
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeInOutSine,
+                            builder: (context, value, child) {
+                              return Transform.scale(
+                                scale: value,
+                                child: Icon(
+                                  Icons.notifications_active,
+                                  color: AppColors.success,
+                                  size: math.min(element.width, element.height) * 0.4,
+                                ),
+                              );
+                            },
+                            onEnd: () {}, // Handled by the continuous nature of some builders or we can use a proper controller
+                          ),
                         Text(
                           element.name,
                           style: const TextStyle(
@@ -99,12 +115,19 @@ class CanvasElement extends StatelessWidget {
                           ),
                         ),
                         if (element.status != 'free')
-                          Text(
-                            element.status.toUpperCase(),
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              element.status.toUpperCase(),
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                       ],
@@ -143,8 +166,7 @@ class CanvasElement extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   IconData _getIconData(String name) {
