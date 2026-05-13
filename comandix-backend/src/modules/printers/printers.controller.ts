@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { PrintersService } from './printers.service';
 import { AuthGuard } from '@nestjs/passport';
-import { TenantId } from '../../common/decorators/tenant-id.decorator';
-import { RolesGuard } from '../../auth/guards/roles.guard';
+import { TenantId } from '../../shared/decorators/tenant-id.decorator';
+import { RolesGuard } from '../../core/auth/roles.guard';
 
 @Controller('printers')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
