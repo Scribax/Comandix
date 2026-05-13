@@ -815,50 +815,35 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.backgroundSecondary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(printer == null ? 'Nueva Impresora' : 'Editar Impresora', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-              if (selectedType == 'LAN')
-                TextButton.icon(
-                  onPressed: isScanning ? null : () async {
-                    setDialogState(() {
-                      isScanning = true;
-                      discoveredPrinters = [];
-                    });
-                    
-                    await for (final p in PrinterScanner.discoverPrinters()) {
-                      setDialogState(() {
-                        if (!discoveredPrinters.any((dp) => dp.name == p.name)) {
-                          discoveredPrinters.add(p);
-                        }
-                      });
-                    }
-                    
-                    setDialogState(() => isScanning = false);
-                  },
-                  icon: isScanning 
-                    ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
-                    : const Icon(Icons.search_rounded, size: 16, color: AppColors.accent),
-                  label: Text(
-                    isScanning ? 'BUSCANDO...' : 'BUSCAR EN RED', 
-                    style: const TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold)
-                  ),
-                ),
-            ],
-          ),
-          content: SizedBox(
-            width: 450,
+          backgroundColor: Colors.transparent,
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            width: 500,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withOpacity(0.98),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 40, spreadRadius: 10)
+              ],
+            ),
             child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Configuración de Impresora', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                      IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Colors.white38)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                   if (isScanning || discoveredPrinters.isNotEmpty || (!isScanning && discoveredPrinters.isEmpty)) ...[
                     const Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('BÚSQUEDA AUTOMÁTICA', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                      child: Text('DISPOSITIVOS CERCANOS', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -889,42 +874,50 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                     const SizedBox(height: 16),
                                     const Text('Lista vacía', style: TextStyle(color: Colors.white24, fontSize: 13, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
-                                    const Text('Toca "BUSCAR EN RED" arriba', style: TextStyle(color: Colors.white12, fontSize: 11)),
+                                    const Text('Toca "BUSCAR" arriba', style: TextStyle(color: Colors.white12, fontSize: 11)),
                                   ],
                                 )
-                              : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: discoveredPrinters.length,
-                              itemBuilder: (context, idx) {
-                                final p = discoveredPrinters[idx];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 4),
-                                  child: ListTile(
-                                    dense: true,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    tileColor: Colors.white.withOpacity(0.03),
-                                    leading: Icon(
-                                      p.type == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded,
-                                      color: AppColors.accent,
-                                      size: 18,
-                                    ),
-                                    title: Text(p.name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                    subtitle: Text(p.type == 'SYSTEM' ? 'Impresora de Windows' : 'IP: ${p.ip}', style: const TextStyle(color: Colors.white38, fontSize: 10)),
-                                    trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent, size: 18),
-                                    onTap: () {
-                                      setDialogState(() {
-                                        nameController.text = p.name;
-                                        selectedType = p.type;
-                                        if (p.type == 'LAN') {
-                                          ipController.text = p.ip!;
-                                        }
-                                      });
+                              : SizedBox(
+                                  height: 110,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: discoveredPrinters.length,
+                                    itemBuilder: (context, idx) {
+                                      final p = discoveredPrinters[idx];
+                                      final isSelected = nameController.text == p.name;
+                                      return GestureDetector(
+                                        onTap: () {
+                                          setDialogState(() {
+                                            nameController.text = p.name;
+                                            selectedType = p.type;
+                                            if (p.type == 'LAN') ipController.text = p.ip!;
+                                          });
+                                        },
+                                        child: Container(
+                                          width: 140,
+                                          margin: const EdgeInsets.only(right: 12),
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(color: isSelected ? AppColors.accent.withOpacity(0.5) : Colors.white.withOpacity(0.05)),
+                                          ),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(p.type == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded, 
+                                                   color: isSelected ? AppColors.accent : Colors.white38, size: 24),
+                                              const SizedBox(height: 8),
+                                              Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, 
+                                                   style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                              Text(p.type == 'SYSTEM' ? 'Windows' : p.ip!, style: const TextStyle(color: Colors.white24, fontSize: 9)),
+                                            ],
+                                          ),
+                                        ).animate().scale(delay: (idx * 50).ms),
+                                      );
                                     },
                                   ),
-                                ).animate().slideX(begin: 0.1, duration: 300.ms).fadeIn();
-                              },
-                            ),
+                                ),
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -935,104 +928,129 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                   const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(labelText: 'Nombre (ej: Cocina)', labelStyle: TextStyle(color: Colors.white38)),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.03),
+                      hintText: 'Nombre (ej: Cocina Principal)',
+                      hintStyle: const TextStyle(color: Colors.white24, fontWeight: FontWeight.normal),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      prefixIcon: const Icon(Icons.label_important_rounded, color: AppColors.accent, size: 20),
+                    ),
+                    onChanged: (val) => setDialogState(() {}),
                   ),
                   const SizedBox(height: 24),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('VINCULAR A SECTOR', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  ),
-                  const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.1))),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), borderRadius: BorderRadius.circular(16)),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: selectedSectorId,
-                        dropdownColor: AppColors.backgroundSecondary,
-                        hint: const Text('Opcional: Seleccionar Sector', style: TextStyle(color: Colors.white24, fontSize: 14)),
+                        hint: const Text('Vincular a Sector', style: TextStyle(color: Colors.white24, fontSize: 14)),
+                        dropdownColor: const Color(0xFF1E293B),
                         isExpanded: true,
-                        items: state.productionSectors.map((sector) => DropdownMenuItem(value: sector.id, child: Text(sector.name, style: const TextStyle(color: Colors.white)))).toList(),
+                        items: state.productionSectors.map((s) => DropdownMenuItem(
+                          value: s.id,
+                          child: Text(s.name, style: const TextStyle(color: Colors.white)),
+                        )).toList(),
                         onChanged: (val) => setDialogState(() => selectedSectorId = val),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildTypeToggle('LAN', 'Red Local', Icons.lan_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
-                      const SizedBox(width: 8),
-                      _buildTypeToggle('SYSTEM', 'Windows', Icons.desktop_windows_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
-                      const SizedBox(width: 8),
-                      _buildTypeToggle('INTERNET', 'Cloud', Icons.cloud_done_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
+                      const Text('CONFIGURACIÓN', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                      TextButton(
+                        onPressed: () => setDialogState(() => showAdvanced = !showAdvanced),
+                        child: Text(showAdvanced ? 'SIMPLIFICAR' : 'AVANZADO', style: const TextStyle(color: AppColors.accent, fontSize: 9, fontWeight: FontWeight.bold)),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  if (selectedType == 'LAN') ...[
-                    TextField(
-                      controller: ipController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: 'Dirección IP', hintText: '192.168.1.100', labelStyle: TextStyle(color: Colors.white38)),
+                  if (showAdvanced) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        _buildTypeToggle('LAN', 'Red Local', Icons.lan_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
+                        const SizedBox(width: 8),
+                        _buildTypeToggle('SYSTEM', 'Windows', Icons.desktop_windows_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
+                        const SizedBox(width: 8),
+                        _buildTypeToggle('INTERNET', 'Cloud', Icons.cloud_done_rounded, selectedType, (val) => setDialogState(() => selectedType = val)),
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: portController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: 'Puerto', hintText: '9100', labelStyle: TextStyle(color: Colors.white38)),
-                    ),
+                    if (selectedType == 'LAN') ...[
+                      TextField(
+                        controller: ipController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Dirección IP', hintText: '192.168.1.100', labelStyle: TextStyle(color: Colors.white38)),
+                      ),
+                    ],
                   ] else ...[
-                    TextField(
-                      controller: endpointController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: 'Endpoint URL', labelStyle: TextStyle(color: Colors.white38)),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: tokenController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: 'Access Token', labelStyle: TextStyle(color: Colors.white38)),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.05), borderRadius: BorderRadius.circular(16)),
+                      child: Row(
+                        children: [
+                          Icon(selectedType == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded, color: AppColors.accent, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              selectedType == 'SYSTEM' ? 'Modo Windows (USB/Driver)' : 'Modo Red (${ipController.text})',
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ],
               ),
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR', style: TextStyle(color: Colors.white38))),
-            ElevatedButton(
-              onPressed: (nameController.text.isEmpty || 
-                         (selectedType == 'LAN' && ipController.text.isEmpty) ||
-                         (selectedType == 'INTERNET' && (endpointController.text.isEmpty || tokenController.text.isEmpty)))
-                ? null
-                : () {
-                  final data = {
-                    'name': nameController.text,
-                    'type': selectedType,
-                    'ipAddress': selectedType == 'LAN' ? ipController.text : null,
-                    'port': selectedType == 'LAN' ? int.tryParse(portController.text) ?? 9100 : null,
-                    'endpointUrl': selectedType == 'INTERNET' ? endpointController.text : null,
-                    'token': selectedType == 'INTERNET' ? tokenController.text : null,
-                    'productionSectorId': selectedSectorId,
-                    'isActive': true,
-                  };
-                  
-                  if (printer == null) {
-                    context.read<PosBloc>().add(PosPrinterCreated(data));
-                  } else {
-                    context.read<PosBloc>().add(PosPrinterUpdated(printer.id, data));
-                  }
-                  Navigator.pop(context);
-                },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.backgroundSecondary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  const SizedBox(height: 48),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: (nameController.text.isEmpty || 
+                                 (selectedType == 'LAN' && ipController.text.isEmpty) ||
+                                 (selectedType == 'INTERNET' && (endpointController.text.isEmpty || tokenController.text.isEmpty)))
+                        ? null
+                        : () {
+                          final data = {
+                            'name': nameController.text,
+                            'type': selectedType,
+                            'ipAddress': selectedType == 'LAN' ? ipController.text : null,
+                            'port': selectedType == 'LAN' ? int.tryParse(portController.text) ?? 9100 : null,
+                            'endpointUrl': selectedType == 'INTERNET' ? endpointController.text : null,
+                            'token': selectedType == 'INTERNET' ? tokenController.text : null,
+                            'productionSectorId': selectedSectorId,
+                            'isActive': true,
+                          };
+                          
+                          if (printer == null) {
+                            context.read<PosBloc>().add(PosPrinterCreated(data));
+                          } else {
+                            context.read<PosBloc>().add(PosPrinterUpdated(printer.id, data));
+                          }
+                          Navigator.pop(context);
+                        },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: AppColors.backgroundSecondary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        elevation: 0,
+                      ),
+                      child: Text(printer == null ? 'GUARDAR IMPRESORA' : 'ACTUALIZAR CAMBIOS', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    ),
+                  ),
+                ],
               ),
-              child: Text(printer == null ? 'GUARDAR' : 'ACTUALIZAR', style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-          ],
+          ),
         ),
       ),
     );
