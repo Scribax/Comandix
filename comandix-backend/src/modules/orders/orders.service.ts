@@ -151,11 +151,15 @@ export class OrdersService {
   }
 
   async getOpenOrders(restaurantId: string) {
-    return this.ordersRepo.find({
-      where: { restaurantId, status: 'open' },
-      relations: ['items', 'table', 'user'],
-      order: { createdAt: 'DESC' },
-    });
+    try {
+      return await this.ordersRepo.find({
+        where: { restaurantId, status: 'open' },
+        relations: ['items', 'table', 'user'],
+        order: { createdAt: 'DESC' },
+      });
+    } catch (e) {
+      throw new Error(`DEBUG_ERROR: ${e.message} - ${e.stack}`);
+    }
   }
 
   async getOrderById(restaurantId: string, orderId: string) {
