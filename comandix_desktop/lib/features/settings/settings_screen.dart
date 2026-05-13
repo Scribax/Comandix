@@ -853,34 +853,69 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (discoveredIps.isNotEmpty && selectedType == 'LAN') ...[
+                  if (isScanning || discoveredIps.isNotEmpty || (!isScanning && discoveredIps.isEmpty && ipController.text.isEmpty)) ...[
                     const Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('IMPRESORAS ENCONTRADAS:', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                      child: Text('BÚSQUEDA AUTOMÁTICA', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Container(
-                      height: 100,
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.02), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(0.05))),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: discoveredIps.length,
-                        itemBuilder: (context, idx) => ListTile(
-                          dense: true,
-                          leading: const Icon(Icons.print_rounded, color: AppColors.accent, size: 18),
-                          title: Text(discoveredIps[idx], style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                          trailing: const Text('SELECCIONAR', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold)),
-                          onTap: () {
-                            setDialogState(() {
-                              ipController.text = discoveredIps[idx];
-                              if (nameController.text.isEmpty) nameController.text = 'Impresora ${discoveredIps[idx].split('.').last}';
-                            });
-                          },
-                        ),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.02),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
                       ),
+                      child: isScanning
+                          ? Column(
+                              children: [
+                                const Icon(Icons.radar_rounded, color: AppColors.accent, size: 48)
+                                    .animate(onPlay: (controller) => controller.repeat())
+                                    .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2), duration: 1.seconds, curve: Curves.easeInOut)
+                                    .rotate(begin: 0, end: 1, duration: 2.seconds),
+                                const SizedBox(height: 16),
+                                const Text('Escaneando tu red local...', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                const SizedBox(height: 4),
+                                const Text('Esto puede tardar unos segundos', style: TextStyle(color: Colors.white24, fontSize: 11)),
+                              ],
+                            )
+                          : discoveredIps.isEmpty
+                              ? Column(
+                                  children: [
+                                    Icon(Icons.SearchOff_rounded, color: Colors.white.withOpacity(0.1), size: 48),
+                                    const SizedBox(height: 16),
+                                    const Text('No se detectaron impresoras', style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    const Text('Puedes configurar la IP manualmente abajo', style: TextStyle(color: Colors.white24, fontSize: 11)),
+                                  ],
+                                ).animate().fadeIn()
+                              : Column(
+                                  children: discoveredIps.map((ip) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: ListTile(
+                                      tileColor: Colors.white.withOpacity(0.03),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      leading: const Icon(Icons.print_rounded, color: AppColors.accent),
+                                      title: Text(ip, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                      trailing: const Icon(Icons.add_circle_outline_rounded, color: AppColors.accent),
+                                      onTap: () {
+                                        setDialogState(() {
+                                          ipController.text = ip;
+                                          if (nameController.text.isEmpty) nameController.text = 'Impresora ${ip.split('.').last}';
+                                        });
+                                      },
+                                    ),
+                                  ).animate().slideX(begin: 0.1, duration: 300.ms).fadeIn()).toList(),
+                                ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                   ],
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('CONFIGURACIÓN MANUAL', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: nameController,
                     style: const TextStyle(color: Colors.white),
