@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProductionSector } from './entities/production-sector.entity';
@@ -27,7 +27,9 @@ export class ProductionSectorsService {
 
   async update(id: string, name: string, icon: string): Promise<ProductionSector> {
     await this.sectorsRepository.update(id, { name, icon });
-    return this.sectorsRepository.findOneBy({ id });
+    const updated = await this.sectorsRepository.findOneBy({ id });
+    if (!updated) throw new NotFoundException('Sector no encontrado');
+    return updated;
   }
 
   async delete(id: string): Promise<void> {

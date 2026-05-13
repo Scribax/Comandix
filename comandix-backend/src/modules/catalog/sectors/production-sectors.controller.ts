@@ -1,28 +1,34 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { ProductionSectorsService } from './production-sectors.service';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { TenantId } from '../../../shared/decorators/tenant-id.decorator';
+import { RolesGuard } from '../../../core/auth/roles.guard';
+import { Roles } from '../../../shared/decorators/roles.decorator';
 
 @Controller('production-sectors')
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class ProductionSectorsController {
   constructor(private readonly sectorsService: ProductionSectorsService) {}
 
   @Get()
-  findAll(@Request() req) {
-    return this.sectorsService.findAllByRestaurant(req.user.restaurantId);
+  findAll(@TenantId() restaurantId: string) {
+    return this.sectorsService.findAllByRestaurant(restaurantId);
   }
 
   @Post()
-  create(@Request() req, @Body() body: { name: string, icon: string }) {
-    return this.sectorsService.create(req.user.restaurantId, body.name, body.icon);
+  @Roles('admin', 'manager')
+  create(@TenantId() restaurantId: string, @Body() body: { name: string, icon: string }) {
+    return this.sectorsService.create(restaurantId, body.name, body.icon);
   }
 
   @Put(':id')
+  @Roles('admin', 'manager')
   update(@Param('id') id: string, @Body() body: { name: string, icon: string }) {
     return this.sectorsService.update(id, body.name, body.icon);
   }
 
   @Delete(':id')
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.sectorsService.delete(id);
   }
