@@ -5,7 +5,7 @@ import {
 import { Restaurant } from '../../../restaurants/entities/restaurant.entity';
 import { Sector } from '../../sectors/entities/sector.entity';
 
-export type TableStatus = 'free' | 'occupied' | 'waiting_payment';
+export type TableStatus = 'free' | 'occupied' | 'waiting_payment' | 'ready';
 export type TableShape = 'square' | 'rectangle' | 'circle';
 
 @Entity('tables')
