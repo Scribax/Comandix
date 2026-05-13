@@ -905,43 +905,51 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                 )
                               : SizedBox(
                                   height: 110,
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: discoveredPrinters.length,
-                                    itemBuilder: (context, idx) {
-                                      final p = discoveredPrinters[idx];
-                                      final isSelected = nameController.text == p.name;
-                                      return GestureDetector(
-                                        onTap: () {
-                                          setDialogState(() {
-                                            nameController.text = p.name;
-                                            selectedType = p.type;
-                                            if (p.type == 'LAN') ipController.text = p.ip!;
-                                          });
-                                        },
-                                        child: Container(
-                                          width: 140,
-                                          margin: const EdgeInsets.only(right: 12),
-                                          padding: const EdgeInsets.all(16),
-                                          decoration: BoxDecoration(
-                                            color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
-                                            borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(color: isSelected ? AppColors.accent.withOpacity(0.5) : Colors.white.withOpacity(0.05)),
-                                          ),
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(p.type == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded, 
-                                                   color: isSelected ? AppColors.accent : Colors.white38, size: 24),
-                                              const SizedBox(height: 8),
-                                              Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, 
-                                                   style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                              Text(p.type == 'SYSTEM' ? 'Windows' : p.ip!, style: const TextStyle(color: Colors.white24, fontSize: 9)),
-                                            ],
-                                          ),
-                                        ).animate().scale(delay: (idx * 50).ms),
-                                      );
-                                    },
+                                  child: ScrollConfiguration(
+                                    behavior: ScrollConfiguration.of(context).copyWith(
+                                      dragDevices: {
+                                        PointerDeviceKind.touch,
+                                        PointerDeviceKind.mouse,
+                                      },
+                                    ),
+                                    child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: discoveredPrinters.length,
+                                      itemBuilder: (context, idx) {
+                                        final p = discoveredPrinters[idx];
+                                        final isSelected = nameController.text == p.name;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setDialogState(() {
+                                              nameController.text = p.name;
+                                              selectedType = p.type;
+                                              if (p.type == 'LAN') ipController.text = p.ip!;
+                                            });
+                                          },
+                                          child: Container(
+                                            width: 140,
+                                            margin: const EdgeInsets.only(right: 12),
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: isSelected ? AppColors.accent.withOpacity(0.5) : Colors.white.withOpacity(0.05)),
+                                            ),
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(p.type == 'SYSTEM' ? Icons.desktop_windows_rounded : Icons.lan_rounded, 
+                                                     color: isSelected ? AppColors.accent : Colors.white38, size: 24),
+                                                const SizedBox(height: 8),
+                                                Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis, 
+                                                     style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                Text(p.type == 'SYSTEM' ? 'Windows' : p.ip!, style: const TextStyle(color: Colors.white24, fontSize: 9)),
+                                              ],
+                                            ),
+                                          ).animate().scale(delay: (idx * 50).ms),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                     ),
