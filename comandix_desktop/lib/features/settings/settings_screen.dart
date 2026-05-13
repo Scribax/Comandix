@@ -1174,7 +1174,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         side: BorderSide(color: block.isVisible ? Colors.white.withOpacity(0.1) : Colors.white10),
       ),
       child: ExpansionTile(
-        key: PageStorageKey(block.id),
         leading: Icon(_getBlockIcon(block.type), color: block.isVisible ? AppColors.accent : Colors.white24),
         title: Text(block.type.name.toUpperCase(), 
           style: TextStyle(color: block.isVisible ? Colors.white : Colors.white24, fontWeight: FontWeight.bold, fontSize: 12)),
@@ -1213,15 +1212,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       case TicketBlockType.header:
         return Column(
           children: [
-            _buildDesignerField('Nombre del Negocio', block.data['name'], (val) => setState(() => block.data['name'] = val)),
-            const SizedBox(height: 12),
-            _buildDesignerField('Dirección', block.data['address'], (val) => setState(() => block.data['address'] = val)),
-            const SizedBox(height: 12),
-            _buildDesignerField('Teléfono', block.data['phone'], (val) => setState(() => block.data['phone'] = val)),
+            _buildDesignerField('Nombre del Negocio', block.data['name'], (val) => setState(() => block.data['name'] = val), key: 'name_${block.id}'),
+            const SizedBox(height: 12.0),
+            _buildDesignerField('Dirección', block.data['address'], (val) => setState(() => block.data['address'] = val), key: 'addr_${block.id}'),
+            const SizedBox(height: 12.0),
+            _buildDesignerField('Teléfono', block.data['phone'], (val) => setState(() => block.data['phone'] = val), key: 'tel_${block.id}'),
           ],
         );
       case TicketBlockType.footer:
-        return _buildDesignerField('Mensaje de Pie', block.data['message'], (val) => setState(() => block.data['message'] = val));
+        return _buildDesignerField('Mensaje de Pie', block.data['message'], (val) => setState(() => block.data['message'] = val), key: 'ftr_${block.id}');
       case TicketBlockType.image:
         return Column(
           children: [
@@ -1251,19 +1250,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           ],
         );
       case TicketBlockType.qr:
-        return _buildDesignerField('Contenido del QR (URL/Pago)', block.data['content'], (val) => setState(() => block.data['content'] = val));
+        return _buildDesignerField('Contenido del QR (URL/Pago)', block.data['content'], (val) => setState(() => block.data['content'] = val), key: 'qr_${block.id}');
       default:
         return const Text('Este bloque no requiere configuración adicional', style: TextStyle(color: Colors.white24, fontSize: 11));
     }
   }
 
-  Widget _buildDesignerField(String label, String initialValue, Function(String) onChanged) {
+  Widget _buildDesignerField(String label, String initialValue, Function(String) onChanged, {String? key}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.white60, fontSize: 12.0)),
         const SizedBox(height: 8.0),
         TextField(
+          key: key != null ? ValueKey(key) : null,
           controller: TextEditingController(text: initialValue)..selection = TextSelection.collapsed(offset: initialValue.length),
           style: const TextStyle(color: Colors.white, fontSize: 14.0),
           decoration: InputDecoration(
