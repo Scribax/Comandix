@@ -1233,8 +1233,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ElevatedButton.icon(
               onPressed: () async {
                 try {
-                  FilePickerResult? result = await FilePicker.platform.pickFiles(
-                    type: FileType.image,
+                  final result = await FilePicker.platform.pickFiles(
+                    type: io.Platform.isWindows ? FileType.any : FileType.image,
                     allowMultiple: false,
                   );
                   if (result != null && result.files.single.path != null) {
