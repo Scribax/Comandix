@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:io';
+import 'dart:io' as io;
 
 enum TicketBlockType { header, items, totals, footer, image, qr, divider }
 
@@ -135,7 +135,7 @@ class TicketPreview extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: block.data['path'] != null
-              ? Image.file(File(block.data['path']), height: block.data['size'])
+              ? Image.file(io.File(block.data['path']), height: block.data['size'])
               : Icon(Icons.image_rounded, size: block.data['size'], color: Colors.black12),
         );
       case TicketBlockType.header:

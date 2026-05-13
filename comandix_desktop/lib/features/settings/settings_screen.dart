@@ -14,6 +14,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/print_dispatcher.dart';
 import './widgets/ticket_preview.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:io' as io;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -1170,7 +1171,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       color: Colors.white.withOpacity(0.02),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: block.isVisible ? Colors.white.withOpacity(0.1) : Colors.white10),
+        side: BorderSide(color: block.isVisible ? Colors.white.withOpacity(0.1) : Colors.white10),
       ),
       child: ExpansionTile(
         key: PageStorageKey(block.id),
@@ -1227,13 +1228,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             if (block.data['path'] != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Image.file(File(block.data['path']), height: 60),
+                child: Image.file(io.File(block.data['path']), height: 60),
               ),
             ElevatedButton.icon(
               onPressed: () async {
-                FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
-                if (result != null) {
-                  setState(() => block.data['path'] = result.files.single.path);
+                try {
+                  FilePickerResult? result = await FilePicker.platform.pickFiles(
+                    type: FileType.image,
+                    allowMultiple: false,
+                  );
+                  if (result != null && result.files.single.path != null) {
+                    setState(() => block.data['path'] = result.files.single.path);
+                  }
+                } catch (e) {
+                  debugPrint('Error picking file: $e');
                 }
               },
               icon: const Icon(Icons.upload_file),
