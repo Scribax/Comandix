@@ -13,7 +13,7 @@ import '../../core/utils/printer_scanner.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/print_dispatcher.dart';
 import './widgets/ticket_preview.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart' as pk;
 import 'dart:io' as io;
 
 class SettingsScreen extends StatefulWidget {
@@ -1233,8 +1233,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             ElevatedButton.icon(
               onPressed: () async {
                 try {
-                  final result = await FilePicker.platform.pickFiles(
-                    type: io.Platform.isWindows ? FileType.any : FileType.image,
+                  final result = await pk.FilePicker.platform.pickFiles(
+                    type: pk.FileType.image,
                     allowMultiple: false,
                   );
                   if (result != null && result.files.single.path != null) {
