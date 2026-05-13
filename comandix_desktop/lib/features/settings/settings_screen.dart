@@ -9,6 +9,7 @@ import '../../shared/models/category_model.dart';
 import '../../shared/models/product_model.dart';
 import '../../shared/models/production_sector_model.dart';
 import '../../shared/models/printer_model.dart';
+import '../../core/utils/printer_scanner.dart';
 import '../../core/theme/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -807,6 +808,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final tokenController = TextEditingController(text: printer?.token);
     String selectedType = printer?.type ?? 'LAN';
     String? selectedSectorId = printer?.productionSectorId;
+    List<String> discoveredIps = [];
+    bool isScanning = false;
 
     showDialog(
       context: context,
@@ -814,13 +817,70 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: AppColors.backgroundSecondary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text(printer == null ? 'Nueva Impresora' : 'Editar Impresora', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(printer == null ? 'Nueva Impresora' : 'Editar Impresora', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+              if (selectedType == 'LAN')
+                TextButton.icon(
+                  onPressed: isScanning ? null : () async {
+                    setDialogState(() {
+                      isScanning = true;
+                      discoveredIps = [];
+                    });
+                    
+                    await for (final ip in PrinterScanner.discoverPrinters()) {
+                      setDialogState(() {
+                        if (!discoveredIps.contains(ip)) discoveredIps.add(ip);
+                      });
+                    }
+                    
+                    setDialogState(() => isScanning = false);
+                  },
+                  icon: isScanning 
+                    ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
+                    : const Icon(Icons.search_rounded, size: 16, color: AppColors.accent),
+                  label: Text(
+                    isScanning ? 'BUSCANDO...' : 'BUSCAR EN RED', 
+                    style: const TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold)
+                  ),
+                ),
+            ],
+          ),
           content: SizedBox(
-            width: 400,
+            width: 450,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (discoveredIps.isNotEmpty && selectedType == 'LAN') ...[
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('IMPRESORAS ENCONTRADAS:', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 100,
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.02), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(0.05))),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: discoveredIps.length,
+                        itemBuilder: (context, idx) => ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.print_rounded, color: AppColors.accent, size: 18),
+                          title: Text(discoveredIps[idx], style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          trailing: const Text('SELECCIONAR', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          onTap: () {
+                            setDialogState(() {
+                              ipController.text = discoveredIps[idx];
+                              if (nameController.text.isEmpty) nameController.text = 'Impresora ${discoveredIps[idx].split('.').last}';
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   TextField(
                     controller: nameController,
                     style: const TextStyle(color: Colors.white),

@@ -113,7 +113,11 @@ class PosBloc extends Bloc<PosEvent, PosState> {
         dashboardStats: dashboardStats,
       ));
     } catch (e) {
-      emit(PosError(e.toString()));
+      if (e.toString().contains('401')) {
+        emit(PosError('SESIÓN EXPIRADA: Por favor vuelve a iniciar sesión para continuar.'));
+      } else {
+        emit(PosError(e.toString()));
+      }
     }
   }
 

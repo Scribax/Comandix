@@ -57,7 +57,65 @@ class _PosMainScreenState extends State<PosMainScreen> {
           }
           
           if (state is PosError) {
-            return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.red)));
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 40, spreadRadius: 10)
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: Colors.red, size: 64),
+                    const SizedBox(height: 24),
+                    const Text(
+                      '¡HUBO UN PROBLEMA!',
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => context.read<PosBloc>().add(PosDataLoaded()),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('REINTENTAR'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.1),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => context.read<AuthBloc>().add(LogoutRequested()),
+                          icon: const Icon(Icons.logout_rounded),
+                          label: const Text('CERRAR SESIÓN'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
 
           if (state is PosLoaded) {
