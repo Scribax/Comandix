@@ -810,6 +810,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     String? selectedSectorId = printer?.productionSectorId;
     List<DiscoveredPrinter> discoveredPrinters = [];
     bool isScanning = false;
+    bool showAdvanced = printer != null;
 
     showDialog(
       context: context,
